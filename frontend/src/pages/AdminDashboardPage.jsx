@@ -29,6 +29,10 @@ export default function AdminDashboardPage() {
   });
   const [activeSection, setActiveSection] = useState("dashboard");
   const [assignmentFilter, setAssignmentFilter] = useState("all");
+  const [assignmentFilters, setAssignmentFilters] = useState({
+    year: "",
+    semester: "",
+  });
   const [editingModuleId, setEditingModuleId] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -258,6 +262,10 @@ export default function AdminDashboardPage() {
     setUserFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const onAssignmentFilterChange = (e) => {
+    setAssignmentFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
   const onApplyFilters = async () => {
     setError("");
     setStatus("");
@@ -271,6 +279,37 @@ export default function AdminDashboardPage() {
     setStatus("");
     await loadData(reset);
   };
+
+  const onResetAssignmentFilters = () => {
+    setAssignmentFilter("all");
+    setAssignmentFilters({ year: "", semester: "" });
+  };
+
+  const filteredAssignments = (() => {
+    const now = new Date();
+    let filtered = assignments.map((item) => ({
+      ...item,
+      daysLeft: Math.ceil((new Date(item.deadline) - now) / (1000 * 60 * 60 * 24)),
+    }));
+
+    if (assignmentFilter === "soon_due") {
+      filtered = filtered.filter((item) => item.daysLeft >= 0 && item.daysLeft <= 3).sort((a, b) => a.daysLeft - b.daysLeft);
+    } else if (assignmentFilter === "recently_published") {
+      filtered = filtered
+        .filter((item) => Math.ceil((now - new Date(item.publishedDate)) / (1000 * 60 * 60 * 24)) <= 7)
+        .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
+    }
+
+    if (assignmentFilters.year) {
+      filtered = filtered.filter((item) => String(item.academicYear) === assignmentFilters.year);
+    }
+
+    if (assignmentFilters.semester) {
+      filtered = filtered.filter((item) => String(item.semester) === assignmentFilters.semester);
+    }
+
+    return filtered;
+  })();
 
   return (
     <div className="pp-layout">
@@ -423,7 +462,7 @@ export default function AdminDashboardPage() {
             <div className="aa-view-topbar">
               <div>
                 <h2 className="aa-view-title">Published Assignments</h2>
-                <p className="pp-muted">{assignments.length} assignment(s) published</p>
+                <p className="pp-muted">Showing {filteredAssignments.length} of {assignments.length} assignment(s)</p>
               </div>
               <button type="button" className="aa-add-btn" onClick={() => navigate("/admin/assignments/add")}>
                 + Add Assignment
@@ -443,20 +482,27 @@ export default function AdminDashboardPage() {
               ))}
             </div>
 
+            <div className="aa-filter-row">
+              <select name="year" value={assignmentFilters.year} onChange={onAssignmentFilterChange}>
+                <option value="">All Years</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+              <select name="semester" value={assignmentFilters.semester} onChange={onAssignmentFilterChange}>
+                <option value="">All Semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+              </select>
+              <button type="button" className="aa-filter-reset-btn" onClick={onResetAssignmentFilters}>
+                Reset
+              </button>
+            </div>
+
             <div className="aa-published-grid">
               {(() => {
-                const now = new Date();
-                let filtered = assignments.map((item) => ({
-                  ...item,
-                  daysLeft: Math.ceil((new Date(item.deadline) - now) / (1000 * 60 * 60 * 24)),
-                }));
-                if (assignmentFilter === "soon_due") {
-                  filtered = filtered.filter((i) => i.daysLeft >= 0 && i.daysLeft <= 3).sort((a, b) => a.daysLeft - b.daysLeft);
-                } else if (assignmentFilter === "recently_published") {
-                  filtered = filtered
-                    .filter((i) => Math.ceil((now - new Date(i.publishedDate)) / (1000 * 60 * 60 * 24)) <= 7)
-                    .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate));
-                }
+                const filtered = filteredAssignments;
                 if (!filtered.length) return <p className="pp-muted">No assignments match this filter.</p>;
                 return filtered.map((item, i) => {
                   const isOverdue = item.daysLeft < 0;
@@ -467,6 +513,10 @@ export default function AdminDashboardPage() {
                         <span className={`aa-pub-clock ${isOverdue ? "aa-clock-red" : ""}`}><AlarmClock size={14} /></span>
                       </div>
                       <h4 className="aa-pub-name">{item.assignmentName}</h4>
+                      <div className="aa-pub-dates">
+                        <span>Year {item.academicYear}</span>
+                        <span>Semester {item.semester}</span>
+                      </div>
                       <div className="aa-pub-dates">
                         <span>📅 {new Date(item.publishedDate).toLocaleDateString()}</span>
                         <span>⏰ {new Date(item.deadline).toLocaleString()}</span>
@@ -479,13 +529,22 @@ export default function AdminDashboardPage() {
                           {isOverdue ? "Overdue" : `${item.daysLeft}d left`}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        className="aa-delete-btn"
-                        onClick={() => setConfirmDelete({ id: item._id, name: item.assignmentName })}
-                      >
-                        Delete
-                      </button>
+                      <div className="aa-card-actions">
+                        <button
+                          type="button"
+                          className="aa-update-btn"
+                          onClick={() => navigate(`/admin/assignments/add?edit=${item._id}`, { state: { assignment: item } })}
+                        >
+                          Update
+                        </button>
+                        <button
+                          type="button"
+                          className="aa-delete-btn"
+                          onClick={() => setConfirmDelete({ id: item._id, name: item.assignmentName })}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </article>
                   );
                 });

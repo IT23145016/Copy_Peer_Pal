@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [assignments, setAssignments] = useState([]);
   const [modules, setModules] = useState([]);
   const [trackerFilter, setTrackerFilter] = useState("all");
+  const [trackerModuleFilter, setTrackerModuleFilter] = useState("all");
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const navigate = useNavigate();
@@ -102,15 +103,55 @@ export default function DashboardPage() {
     [trackerCards]
   );
 
+  const dashboardAssignmentItems = useMemo(
+    () =>
+      [...trackerCards].sort((a, b) => {
+        const aTime = new Date(a.deadline).getTime();
+        const bTime = new Date(b.deadline).getTime();
+        const aUpcoming = a.remainingDays >= 0;
+        const bUpcoming = b.remainingDays >= 0;
+
+        if (aUpcoming && !bUpcoming) return -1;
+        if (!aUpcoming && bUpcoming) return 1;
+
+        if (aUpcoming && bUpcoming) {
+          return aTime - bTime;
+        }
+
+        return bTime - aTime;
+      }),
+    [trackerCards]
+  );
+
+  const trackerModuleOptions = useMemo(() => {
+    const uniqueModules = new Map();
+    trackerCards.forEach((item) => {
+      const key = item.moduleCode || item.moduleName || item.moduleRef || item._id;
+      if (!uniqueModules.has(key)) {
+        uniqueModules.set(key, {
+          value: item.moduleCode || key,
+          label: item.moduleCode ? `${item.moduleCode}${item.moduleName ? ` - ${item.moduleName}` : ""}` : item.moduleName || "Unknown Module",
+        });
+      }
+    });
+    return Array.from(uniqueModules.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [trackerCards]);
+
   const filteredTrackerCards = useMemo(() => {
+    let filtered = trackerCards;
+
+    if (trackerModuleFilter !== "all") {
+      filtered = filtered.filter((item) => item.moduleCode === trackerModuleFilter);
+    }
+
     if (trackerFilter === "soon_due") {
-      return trackerCards
+      return filtered
         .filter((item) => item.remainingDays >= 0 && item.remainingDays <= 2)
         .sort((a, b) => a.remainingDays - b.remainingDays);
     }
     if (trackerFilter === "newly_published") {
       const now = new Date();
-      return trackerCards
+      return filtered
         .filter((item) => {
           const publishedDate = new Date(item.publishedDate);
           const diffDays = Math.ceil((now.getTime() - publishedDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -118,11 +159,10 @@ export default function DashboardPage() {
         })
         .sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
     }
-    return trackerCards;
-  }, [trackerCards, trackerFilter]);
+    return filtered;
+  }, [trackerCards, trackerFilter, trackerModuleFilter]);
 
-  const nextAssignment =
-    dueSoonItems[0] || trackerCards.find((item) => !item.overdue && item.trackerStatus !== "done") || null;
+  const nextAssignment = null;
 
   return (
     <div className="pp-layout">
@@ -201,7 +241,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Right: Schedule Focus */}
-              <div className="adm-right">
+              <div className="adm-right" style={{ display: "none" }}>
                 <div className="adm-section-head"><h3>Schedule Focus</h3></div>
                 {nextAssignment ? (
                   <div className="adm-module-rows">
@@ -224,21 +264,21 @@ export default function DashboardPage() {
               <button type="button" className="adm-see-all" onClick={() => navigate("/dashboard?tab=tracker")}>See all</button>
             </div>
             <div className="adm-student-list">
-              {trackerCards.slice(0, 3).map((item) => (
+              {dashboardAssignmentItems.slice(0, 5).map((item) => (
                 <div key={item._id} className="adm-student-row">
                   <div className="adm-student-avatar" style={{borderRadius:"10px"}}>
                     {item.trackerStatus === "done" ? <CheckCircle2 size={16} /> : <ClipboardList size={16} />}
                   </div>
                   <div className="adm-student-info">
                     <strong>{item.moduleCode} — {item.assignmentName}</strong>
-                    <span>Deadline: {new Date(item.deadline).toLocaleDateString()}</span>
+                    <span>{`Deadline: ${new Date(item.deadline).toLocaleString()}`}</span>
                   </div>
                   <span className={`adm-status-dot ${item.trackerStatus === "done" ? "adm-dot-active" : item.overdue ? "adm-dot-inactive" : ""}`}>
-                    {item.trackerStatus === "done" ? "Done" : item.overdue ? "Overdue" : `${item.remainingDays}d left`}
+                    {item.trackerStatus === "done" ? "Done" : item.trackerStatus === "not_completed" ? "Not Done" : item.overdue ? "Overdue" : `${item.remainingDays}d left`}
                   </span>
                 </div>
               ))}
-              {trackerCards.length === 0 && <p className="pp-muted" style={{padding:"1rem"}}>No assignments yet.</p>}
+              {dashboardAssignmentItems.length === 0 && <p className="pp-muted" style={{padding:"1rem"}}>No assignments yet.</p>}
             </div>
           </div>
         ) : null}
@@ -248,12 +288,22 @@ export default function DashboardPage() {
             <div className="aa-view-topbar">
               <div>
                 <h2 className="aa-view-title">Assignment Tracker</h2>
-                <p className="pp-muted">{trackerCards.length} assignment(s)</p>
+                <p className="pp-muted">{filteredTrackerCards.length} of {trackerCards.length} assignment(s)</p>
               </div>
-              <div className="aa-filter-tabs">
-                {[["all","All"],["soon_due","Soon Due"],["newly_published","Recently Published"]].map(([val, label]) => (
-                  <button key={val} type="button" className={`aa-filter-tab ${trackerFilter === val ? "active" : ""}`} onClick={() => setTrackerFilter(val)}>{label}</button>
-                ))}
+              <div style={{display:"grid", gap:"0.75rem", justifyItems:"end"}}>
+                <div className="aa-filter-tabs">
+                  {[["all","All"],["soon_due","Soon Due"],["newly_published","Recently Published"]].map(([val, label]) => (
+                    <button key={val} type="button" className={`aa-filter-tab ${trackerFilter === val ? "active" : ""}`} onClick={() => setTrackerFilter(val)}>{label}</button>
+                  ))}
+                </div>
+                <div className="aa-filter-row">
+                  <select value={trackerModuleFilter} onChange={(e) => setTrackerModuleFilter(e.target.value)}>
+                    <option value="all">All Modules</option>
+                    {trackerModuleOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
             <div className="aa-published-grid">
@@ -278,9 +328,14 @@ export default function DashboardPage() {
                   </div>
                   <div style={{marginTop:"0.5rem"}}>
                     {item.trackerStatus === "done" ? (
-                      <span className="pp-btn-done" style={{display:"inline-flex",alignItems:"center",gap:"0.3rem",padding:"0.4rem 0.8rem",borderRadius:"10px",fontSize:"0.82rem",opacity:0.85,cursor:"default"}}>
-                        <CheckCircle2 size={14} /> Completed
-                      </span>
+                      <div style={{display:"flex",gap:"0.4rem"}}>
+                        <span className="pp-btn-done" style={{display:"inline-flex",alignItems:"center",gap:"0.3rem",padding:"0.4rem 0.8rem",borderRadius:"10px",fontSize:"0.82rem",opacity:0.85,cursor:"default"}}>
+                          <CheckCircle2 size={14} /> Completed
+                        </span>
+                        <button type="button" className="pp-btn-danger" style={{margin:0,padding:"0.4rem 0.8rem",fontSize:"0.82rem"}} onClick={() => onSetTrackerStatus(item._id, "not_completed")}>
+                          <XCircle size={14} /> Mark Not Done
+                        </button>
+                      </div>
                     ) : (
                       <div style={{display:"flex",gap:"0.4rem"}}>
                         <button type="button" className="pp-btn-done" style={{margin:0,padding:"0.4rem 0.8rem",fontSize:"0.82rem"}} onClick={() => onSetTrackerStatus(item._id, "done")}>
