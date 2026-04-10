@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, BookOpenCheck, CalendarDays, FilePenLine } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import { clearStoredAuth, getStoredAuth } from "../utils/auth";
@@ -9,25 +9,67 @@ export default function AddAssignmentPage() {
   const [modules, setModules] = useState([]);
   const [selectedModuleId, setSelectedModuleId] = useState("");
   const [form, setForm] = useState({ assignmentName: "", publishedDate: "", deadline: "", deadlineTime: "23:59" });
+  const [deadlineConfirmed, setDeadlineConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const auth = getStoredAuth();
+  const editId = searchParams.get("edit");
+  const isEditMode = Boolean(editId);
+  const assignmentFromState = location.state?.assignment || null;
+  const formatDateForInput = (value) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+  const formatTimeForInput = (value) => {
+    if (!value) return "23:59";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "23:59";
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  };
+  const applyAssignmentToForm = (assignment) => {
+    if (!assignment) return;
+    setSelectedModuleId(String(assignment.moduleRef?._id || assignment.moduleRef || ""));
+    setForm({
+      assignmentName: assignment.assignmentName || "",
+      publishedDate: formatDateForInput(assignment.publishedDate),
+      deadline: formatDateForInput(assignment.deadline),
+      deadlineTime: formatTimeForInput(assignment.deadline),
+    });
+    setDeadlineConfirmed(false);
+  };
+
+  useEffect(() => {
+    if (assignmentFromState) {
+      applyAssignmentToForm(assignmentFromState);
+    }
+  }, [assignmentFromState]);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [meRes, modRes] = await Promise.all([api.get("/auth/me"), api.get("/modules")]);
+        const requests = [api.get("/auth/me"), api.get("/modules")];
+        if (editId) {
+          requests.push(api.get(`/assignments/${editId}`));
+        }
+        const [meRes, modRes, assignmentRes] = await Promise.all(requests);
         setProfile(meRes.data);
         setModules(modRes.data);
+        if (assignmentRes?.data) {
+          applyAssignmentToForm(assignmentRes.data);
+        }
       } catch (err) {
         setError("Failed to load data");
       }
     };
     load();
-  }, []);
+  }, [editId]);
 
   const onLogout = () => { clearStoredAuth(); navigate("/"); };
 
@@ -38,7 +80,7 @@ export default function AddAssignmentPage() {
       setError("Please select a module and fill all fields");
       return;
     }
-    if (form.publishedDate < today) {
+    if (!isEditMode && form.publishedDate < today) {
       setError("Published date cannot be in the past");
       return;
     }
@@ -46,29 +88,39 @@ export default function AddAssignmentPage() {
       setError("Deadline must be on or after the published date");
       return;
     }
+    if (!deadlineConfirmed) {
+      setError("Please confirm the deadline date before continuing");
+      return;
+    }
     try {
       setSaving(true);
       const deadlineWithTime = form.deadline && form.deadlineTime
         ? `${form.deadline}T${form.deadlineTime}:00`
         : form.deadline;
-      const { data } = await api.post("/assignments", {
+      const payload = {
         moduleId: selectedModuleId,
         assignmentName: form.assignmentName.trim(),
         publishedDate: form.publishedDate,
         deadline: deadlineWithTime,
-      });
-      setSuccess("Assignment published successfully!");
-      setForm({ assignmentName: "", publishedDate: "", deadline: "" });
+      };
+      await (isEditMode ? api.put(`/assignments/${editId}`, payload) : api.post("/assignments", payload));
+      setSuccess(isEditMode ? "Assignment updated successfully!" : "Assignment published successfully!");
+      if (isEditMode) {
+        navigate("/admin/dashboard?tab=assignments");
+        return;
+      }
+      setForm({ assignmentName: "", publishedDate: "", deadline: "", deadlineTime: "23:59" });
       setSelectedModuleId("");
+      setDeadlineConfirmed(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to publish assignment");
+      setError(err.response?.data?.message || (isEditMode ? "Failed to update assignment" : "Failed to publish assignment"));
     } finally {
       setSaving(false);
     }
   };
 
   const today = new Date().toISOString().split("T")[0];
-  const selectedModule = modules.find((m) => m._id === selectedModuleId);
+  const selectedModule = modules.find((m) => String(m._id) === String(selectedModuleId));
 
   return (
     <div className="pp-layout">
@@ -79,7 +131,7 @@ export default function AddAssignmentPage() {
           <button type="button" className="aa-back-btn" onClick={() => navigate("/admin/dashboard?tab=assignments")}>
             <ArrowLeft size={16} /> Back to Assignments
           </button>
-          <h1 className="aa-title">Publish New Assignment</h1>
+          <h1 className="aa-title">{isEditMode ? "Update Assignment" : "Publish New Assignment"}</h1>
         </div>
 
         <div className="aa-grid">
@@ -98,8 +150,8 @@ export default function AddAssignmentPage() {
                 <button
                   key={m._id}
                   type="button"
-                  className={`aa-module-btn ${selectedModuleId === m._id ? "active" : ""}`}
-                  onClick={() => setSelectedModuleId(m._id)}
+                  className={`aa-module-btn ${String(selectedModuleId) === String(m._id) ? "active" : ""}`}
+                  onClick={() => setSelectedModuleId(String(m._id))}
                 >
                   <strong>{m.moduleCode}</strong>
                   <span>{m.moduleName}</span>
@@ -137,19 +189,50 @@ export default function AddAssignmentPage() {
               <div className="aa-form-row">
                 <div className="aa-field">
                   <label><CalendarDays size={13} /> Published Date</label>
-                  <input type="date" min={today} value={form.publishedDate} onChange={(e) => setForm((p) => ({ ...p, publishedDate: e.target.value }))} />
+                  <input
+                    type="date"
+                    min={today}
+                    value={form.publishedDate}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, publishedDate: e.target.value }));
+                      setDeadlineConfirmed(false);
+                    }}
+                  />
                 </div>
                 <div className="aa-field">
                   <label><CalendarDays size={13} /> Deadline Date</label>
-                  <input type="date" min={form.publishedDate || today} value={form.deadline} onChange={(e) => setForm((p) => ({ ...p, deadline: e.target.value }))} />
+                  <input
+                    type="date"
+                    min={form.publishedDate || today}
+                    value={form.deadline}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, deadline: e.target.value }));
+                      setDeadlineConfirmed(false);
+                    }}
+                  />
                 </div>
                 <div className="aa-field">
                   <label>⏰ Deadline Time</label>
-                  <input type="time" value={form.deadlineTime} onChange={(e) => setForm((p) => ({ ...p, deadlineTime: e.target.value }))} />
+                  <input
+                    type="time"
+                    value={form.deadlineTime}
+                    onChange={(e) => {
+                      setForm((p) => ({ ...p, deadlineTime: e.target.value }));
+                      setDeadlineConfirmed(false);
+                    }}
+                  />
                 </div>
               </div>
-              <button type="submit" className="aa-submit-btn" disabled={saving || !selectedModuleId}>
-                {saving ? "Publishing..." : "Publish Assignment"}
+              <label className="aa-checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={deadlineConfirmed}
+                  onChange={(e) => setDeadlineConfirmed(e.target.checked)}
+                />
+                <span>I confirm the selected deadline date and time are correct.</span>
+              </label>
+              <button type="submit" className="aa-submit-btn" disabled={saving || !selectedModuleId || !deadlineConfirmed}>
+                {saving ? (isEditMode ? "Updating..." : "Publishing...") : (isEditMode ? "Update Assignment" : "Publish Assignment")}
               </button>
             </form>
           </div>
