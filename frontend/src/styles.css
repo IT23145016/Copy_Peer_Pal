@@ -6772,6 +6772,15 @@ body.theme-dark .pp-muted         { color: #94a3b8 !important; }
 body.theme-dark .pp-sidebar-name  { color: #f1f5f9 !important; }
 body.theme-dark .pp-sidebar-role  { color: #94a3b8 !important; }
 body.theme-dark .pp-nav-item      { color: #94a3b8 !important; }
+body.theme-dark .pp-nav-item.active {
+  background: #e5e7eb !important;
+  color: #111827 !important;
+  border-color: #cbd5e1 !important;
+}
+body.theme-dark .pp-nav-item.active span,
+body.theme-dark .pp-nav-item.active svg {
+  color: #111827 !important;
+}
 
 /* Confirm modal dark */
 body.theme-dark .confirm-title { color: #f1f5f9 !important; }
