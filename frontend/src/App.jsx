@@ -3,10 +3,13 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import AddAssignmentPage from "./pages/AddAssignmentPage";
 import AddModulePage from "./pages/AddModulePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AboutPage from "./pages/AboutPage";
 import CalendarPage from "./pages/CalendarPage";
 import AppFooter from "./components/AppFooter";
+import ContactPage from "./pages/ContactPage";
 import PublicNavbar from "./components/PublicNavbar";
 import DashboardPage from "./pages/DashboardPage";
+import HelpPage from "./pages/HelpPage";
 import HelpDeskPage from "./pages/HelpDeskPage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -43,6 +46,9 @@ export default function App() {
       </div>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
