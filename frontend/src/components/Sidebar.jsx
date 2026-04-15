@@ -1,18 +1,13 @@
-import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, LogOut, Moon, SunMedium, UserRound } from "lucide-react";
+import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getDashboardPathByRole, getStoredAuth } from "../utils/auth";
 
-export default function Sidebar({ profile, onLogout, onHomeClick }) {
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
-
-  const toggleTheme = () => {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-    document.body.classList.toggle("theme-dark", next);
-  };
+export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false }) {
+  const [collapsed, setCollapsed] = useState(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    return saved === null ? defaultCollapsed : saved === "true";
+  });
   const navigate = useNavigate();
   const location = useLocation();
   const storedAuth = getStoredAuth();
@@ -33,7 +28,6 @@ export default function Sidebar({ profile, onLogout, onHomeClick }) {
   return (
     <aside className={`pp-sidebar ${collapsed ? "pp-sidebar-collapsed" : ""}`}>
       <div className="pp-sidebar-brand">
-        <span className="pp-sidebar-brand-mark">P</span>
         {!collapsed && (
           <span className="pp-sidebar-brand-text">
             PeerPal
@@ -51,34 +45,11 @@ export default function Sidebar({ profile, onLogout, onHomeClick }) {
         </button>
       </div>
 
-      {!collapsed && (
-        <div className="pp-sidebar-profile">
-          {avatarSrc
-            ? <img className="pp-avatar-img" src={avatarSrc} alt="Profile" />
-            : <div className="pp-avatar-fallback">{initials}</div>
-          }
-          <div>
-            <p className="pp-sidebar-name">{profile?.name || "User"}</p>
-            <p className="pp-sidebar-role">{profile?.role || "member"}</p>
-          </div>
-        </div>
-      )}
-
-      {collapsed && avatarSrc && (
-        <div className="pp-sidebar-avatar-mini">
-          <img className="pp-avatar-img" src={avatarSrc} alt="Profile" />
-        </div>
-      )}
-
       <nav className="pp-sidebar-nav">
         <button type="button" className={`pp-nav-item ${isActive("/dashboard") || isActive("/admin/dashboard") ? "active" : ""}`} onClick={onHomeNavigate} title="Dashboard">
           <LayoutDashboard size={18} />
           {!collapsed && <span>Dashboard</span>}
         </button>
-        <Link to="/profile" className={`pp-nav-item ${isActive("/profile") ? "active" : ""}`} title="Profile">
-          <UserRound size={18} />
-          {!collapsed && <span>Profile</span>}
-        </Link>
         {role === "user" ? (
           <>
             <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
@@ -130,15 +101,26 @@ export default function Sidebar({ profile, onLogout, onHomeClick }) {
             </Link>
           </>
         )}
-        <button type="button" className="pp-nav-item pp-nav-logout" onClick={onLogout} title="Logout">
-          <LogOut size={18} />
-          {!collapsed && <span>Logout</span>}
-        </button>
-        <button type="button" className="pp-nav-item pp-nav-theme" onClick={toggleTheme} title="Toggle theme">
-          {dark ? <SunMedium size={18} /> : <Moon size={18} />}
-          {!collapsed && <span>{dark ? "Light Mode" : "Dark Mode"}</span>}
-        </button>
       </nav>
+
+      {!collapsed && (
+        <div className="pp-sidebar-profile">
+          {avatarSrc
+            ? <img className="pp-avatar-img" src={avatarSrc} alt="Profile" />
+            : <div className="pp-avatar-fallback">{initials}</div>
+          }
+          <div>
+            <p className="pp-sidebar-name">{profile?.name || "User"}</p>
+            <p className="pp-sidebar-role">{profile?.role || "member"}</p>
+          </div>
+        </div>
+      )}
+
+      {collapsed && avatarSrc && (
+        <div className="pp-sidebar-avatar-mini">
+          <img className="pp-avatar-img" src={avatarSrc} alt="Profile" />
+        </div>
+      )}
 
     </aside>
   );

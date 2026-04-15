@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
 import { BookMarked, CalendarRange, CircleHelp, UsersRound } from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import { clearStoredAuth, getStoredAuth } from "../utils/auth";
 
 const featureCards = [
   {
@@ -24,9 +27,24 @@ const featureCards = [
 ];
 
 export default function LandingPage() {
+  const navigate = useNavigate();
+  const auth = getStoredAuth();
+
+  const onLogout = () => {
+    clearStoredAuth();
+    navigate("/", { replace: true });
+  };
+
   return (
-    <main className="landing landing-student">
-      <section className="student-shell">
+    <div className={`landing-home-wrap ${auth?.token ? "landing-home-wrap-with-sidebar" : ""}`}>
+      {auth?.token ? (
+        <div className="landing-sidebar-dock">
+          <Sidebar profile={auth.user} onLogout={onLogout} defaultCollapsed />
+        </div>
+      ) : null}
+
+      <main className="landing landing-student">
+        <section className="student-shell">
         <section className="student-hero">
           <div className="student-copy student-copy-simple">
             <div className="hero-banner-card">
@@ -73,7 +91,8 @@ export default function LandingPage() {
             </p>
           </article>
         </section>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

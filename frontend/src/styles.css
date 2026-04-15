@@ -211,6 +211,30 @@ a {
     linear-gradient(180deg, #fffaf6 0%, #fff5ee 45%, #fff1e7 100%);
 }
 
+.landing-home-wrap {
+  position: relative;
+}
+
+.landing-sidebar-dock {
+  position: fixed;
+  top: 72px;
+  left: 0;
+  z-index: 85;
+}
+
+.landing-sidebar-dock .pp-sidebar {
+  position: relative;
+  top: auto;
+  height: calc(100vh - 72px);
+  min-height: calc(100vh - 72px);
+  border-radius: 0 18px 18px 0;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+}
+
+.landing-home-wrap-with-sidebar .landing {
+  padding-left: 5.5rem;
+}
+
 .landing-student.theme-dark {
   --bg: #171312;
   --surface: rgba(34, 29, 28, 0.8);
@@ -3893,7 +3917,8 @@ button:disabled {
   border-right: 1px solid rgba(245, 128, 37, 0.14);
   padding: 1.4rem 1rem;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto auto auto;
+  align-content: start;
   gap: 1.2rem;
   position: sticky;
   top: 0;
@@ -3941,6 +3966,9 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  width: calc(100% - 0.85rem);
+  justify-self: start;
+  align-self: start;
   background: rgba(255, 243, 230, 0.85);
   border: 1px solid rgba(245, 128, 37, 0.18);
   border-radius: 16px;
@@ -7772,6 +7800,8 @@ body.theme-dark .landing-student .theme-toggle {
 }
 
 .site-footer {
+  position: relative;
+  z-index: 96;
   border-top: 1px solid rgba(148, 163, 184, 0.18);
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(14px);
@@ -7779,6 +7809,8 @@ body.theme-dark .landing-student .theme-toggle {
 }
 
 .site-footer-inner {
+  position: relative;
+  z-index: 1;
   width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 1rem 0 1.2rem;
