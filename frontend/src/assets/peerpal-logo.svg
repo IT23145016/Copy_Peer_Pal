@@ -1,0 +1,18 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="peerpalBg" x1="18" y1="14" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7FB2FF"/>
+      <stop offset="1" stop-color="#2C4E86"/>
+    </linearGradient>
+    <linearGradient id="peerpalAccent" x1="36" y1="28" x2="92" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7F0"/>
+      <stop offset="1" stop-color="#DCE9FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="32" fill="url(#peerpalBg)"/>
+  <path d="M39 31C39 26.5817 42.5817 23 47 23H67C83.5685 23 97 36.4315 97 53C97 69.5685 83.5685 83 67 83H61.5L46.5 95V83H47C42.5817 83 39 79.4183 39 75V31Z" fill="url(#peerpalAccent)"/>
+  <path d="M53 44H68.5C74.8513 44 80 49.1487 80 55.5C80 61.8513 74.8513 67 68.5 67H61V77L53 67H53C49.6863 67 47 64.3137 47 61V50C47 46.6863 49.6863 44 53 44Z" fill="#30588F"/>
+  <path d="M59 46.5V73" stroke="#F6FBFF" stroke-width="7" stroke-linecap="round"/>
+  <path d="M59 46.5H70C75.2467 46.5 79.5 50.7533 79.5 56C79.5 61.2467 75.2467 65.5 70 65.5H59" stroke="#F6FBFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="87" cy="39" r="7" fill="#FFB36B"/>
+</svg>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Moon, SunMedium } from "lucide-react";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
 
@@ -18,19 +17,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("theme") || "light";
-    document.body.classList.toggle("theme-dark", saved === "dark");
-    return saved;
-  });
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    localStorage.setItem("theme", next);
-    document.body.classList.toggle("theme-dark", next === "dark");
-  };
 
   const onChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -75,24 +62,8 @@ export default function RegisterPage() {
   );
 
   return (
-    <main className={`landing landing-student reg-page ${theme === "dark" ? "theme-dark" : "theme-light"}`}>
+    <main className="landing landing-student reg-page">
       <section className="student-shell">
-
-        <header className="student-topbar">
-          <Link className="student-brand" to="/">
-            <span className="student-brand-mark">P</span>
-            <span>PeerPal<small>Student life, simplified</small></span>
-          </Link>
-          <div className="student-topbar-spacer" aria-hidden="true" />
-          <div className="student-top-actions">
-            <button type="button" className="theme-toggle" onClick={toggleTheme}>
-              {theme === "light" ? <Moon size={16} /> : <SunMedium size={16} />}
-              <span>{theme === "light" ? "Dark" : "Light"}</span>
-            </button>
-            <Link className="mini-link" to="/">Home</Link>
-          </div>
-        </header>
-
         <div className="reg-center">
           <form className="login-card reg-card" onSubmit={onSubmit} noValidate>
 
