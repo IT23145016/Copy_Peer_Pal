@@ -246,25 +246,27 @@ a {
 }
 
 .peerpal-home-shell {
-  width: min(1180px, calc(100% - 1rem));
+  width: min(1240px, calc(100% - 1rem));
   margin: 0 auto;
   display: grid;
   gap: 2rem;
 }
 
 .peerpal-home-topbar {
-  border-radius: 1.1rem;
+  width: 100%;
+  border-radius: 0;
   background: linear-gradient(135deg, #6d9fe4 0%, #4f84d2 100%);
   box-shadow: 0 12px 28px rgba(72, 125, 202, 0.16);
 }
 
 .peerpal-home-topbar p {
   margin: 0;
-  padding: 0.85rem 1.25rem;
+  padding: 1rem 1.5rem;
   text-align: center;
   color: #f8fbff;
-  font-size: 1rem;
+  font-size: 1.18rem;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .peerpal-home-hero {
@@ -652,7 +654,7 @@ body.theme-dark .peerpal-home-visual {
 }
 
 body.theme-dark .peerpal-home-accent {
-  background: #345d5a;
+  background: linear-gradient(180deg, #446da8 0%, #31598f 100%);
 }
 
 body.theme-dark .peerpal-home-doodle-left,
@@ -710,8 +712,8 @@ body.theme-dark .peerpal-home-info-card-highlight {
   }
 
   .peerpal-home-topbar p {
-    padding: 0.75rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.9rem 1rem;
+    font-size: 1rem;
   }
 
   .peerpal-home-stats,
