@@ -9034,6 +9034,18 @@ body.theme-dark .landing-student .theme-toggle {
   margin-left: 0 !important;
 }
 
+body.theme-dark .adm-dashboard .adm-section-head h3 {
+  color: #1e293b !important;
+}
+
+body.theme-dark .adm-dashboard .pp-muted {
+  color: #64748b !important;
+}
+
+body.theme-dark .adm-dashboard .adm-see-all {
+  color: #2563eb !important;
+}
+
 /* Final dark mode app surfaces: light page background, dark cards */
 body.theme-dark {
   --pp-bg: #eef2ff;

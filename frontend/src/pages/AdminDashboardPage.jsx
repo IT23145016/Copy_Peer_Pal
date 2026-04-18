@@ -191,13 +191,17 @@ export default function AdminDashboardPage() {
     .sort((a, b) => a.daysLeft - b.daysLeft);
   const recentAssignments = [...filteredAssignments]
     .sort((a, b) => new Date(b.publishedDate) - new Date(a.publishedDate))
-    .slice(0, 5);
+    .slice(0, 3);
   const recentModules = [...modules]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    .slice(0, 5);
+    .slice(0, 3);
   const recentUsers = [...users]
     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    .slice(0, 6);
+    .slice(0, 3);
+  const needsAttentionItems = [
+    ...overdueAssignments.map((item) => ({ ...item, attentionType: "overdue" })),
+    ...dueSoonAssignments.map((item) => ({ ...item, attentionType: "soon" })),
+  ].slice(0, 3);
 
   return (
     <div className="pp-layout adm-page-shell">
@@ -311,22 +315,20 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="adm-alert-stack">
-                  {overdueAssignments.slice(0, 3).map((item) => (
-                    <article key={item._id} className="adm-alert-card adm-alert-overdue">
+                  {needsAttentionItems.map((item) => (
+                    <article
+                      key={item._id}
+                      className={`adm-alert-card ${item.attentionType === "overdue" ? "adm-alert-overdue" : ""}`}
+                    >
                       <div className="adm-alert-top">
                         <strong>{item.moduleCode}</strong>
-                        <span className="adm-alert-chip adm-alert-chip-danger">Overdue</span>
-                      </div>
-                      <p>{item.assignmentName}</p>
-                      <small>Deadline: {new Date(item.deadline).toLocaleString()}</small>
-                    </article>
-                  ))}
-
-                  {dueSoonAssignments.slice(0, 3).map((item) => (
-                    <article key={item._id} className="adm-alert-card">
-                      <div className="adm-alert-top">
-                        <strong>{item.moduleCode}</strong>
-                        <span className="adm-alert-chip">{item.daysLeft === 0 ? "Due today" : `${item.daysLeft} day(s) left`}</span>
+                        <span className={`adm-alert-chip ${item.attentionType === "overdue" ? "adm-alert-chip-danger" : ""}`}>
+                          {item.attentionType === "overdue"
+                            ? "Overdue"
+                            : item.daysLeft === 0
+                              ? "Due today"
+                              : `${item.daysLeft} day(s) left`}
+                        </span>
                       </div>
                       <p>{item.assignmentName}</p>
                       <small>Deadline: {new Date(item.deadline).toLocaleString()}</small>
