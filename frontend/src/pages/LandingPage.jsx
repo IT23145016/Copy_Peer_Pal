@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { BookMarked, CalendarRange, CircleHelp, UsersRound } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { clearStoredAuth, getStoredAuth } from "../utils/auth";
@@ -34,7 +35,22 @@ const featureCards = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const auth = getStoredAuth();
+
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      return;
+    }
+
+    const targetId = location.hash.replace("#", "");
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
 
   const onLogout = () => {
     clearStoredAuth();

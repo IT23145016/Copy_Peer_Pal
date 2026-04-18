@@ -12,6 +12,8 @@ export default function AppFooter() {
     location.pathname.startsWith("/helpdesk") ||
     location.pathname.startsWith("/study-sessions") ||
     location.pathname.startsWith("/calendar");
+  const supportHubPath = isLoggedInArea ? "/helpdesk" : "/help";
+  const contactPath = isLoggedInArea ? "/helpdesk" : "/contact";
 
   const navigationLinks = [
     { label: "Home", to: "/" },
@@ -36,8 +38,8 @@ export default function AppFooter() {
       ];
 
   const supportLinks = [
-    { label: "Help Center", to: "/help" },
-    { label: "Contact Support", to: "/contact" },
+    { label: "Help Center", to: supportHubPath },
+    { label: "Contact Support", to: contactPath },
     { label: "About PeerPal", to: "/about" },
     { label: "Campus Features", to: "/#features", href: true },
   ];
