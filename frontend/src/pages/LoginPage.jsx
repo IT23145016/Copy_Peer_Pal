@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BookOpenCheck, ShieldCheck } from "lucide-react";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
 
@@ -43,8 +44,37 @@ export default function LoginPage() {
 
   return (
     <main className="landing landing-student">
-      <section className="student-shell">
+      <section className="student-shell login-shell">
         <div className="login-center">
+          <aside className="login-visual" aria-hidden="true">
+            <span className="login-visual-kicker">Student Login</span>
+            <h2 className="login-visual-heading">Plan better, study calmer, and stay connected.</h2>
+            <p className="login-visual-sub">
+              Access assignments, modules, study sessions, and support tools in one modern workspace.
+            </p>
+
+            <div className="login-visual-highlights">
+              <div className="login-highlight-card">
+                <span className="login-highlight-icon">
+                  <BookOpenCheck size={18} />
+                </span>
+                <div>
+                  <strong>Assignments</strong>
+                  <small>Track deadlines clearly</small>
+                </div>
+              </div>
+              <div className="login-highlight-card">
+                <span className="login-highlight-icon">
+                  <ShieldCheck size={18} />
+                </span>
+                <div>
+                  <strong>Help Desk</strong>
+                  <small>Reach support faster</small>
+                </div>
+              </div>
+            </div>
+          </aside>
+
           <form className="login-card" onSubmit={onSubmit} noValidate>
             <div className="login-card-header">
               <span className="login-badge">Welcome Back</span>
