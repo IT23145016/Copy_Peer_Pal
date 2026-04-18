@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { BookMarked, CalendarRange, CircleHelp, Menu, Moon, SunMedium, UsersRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BookMarked, CalendarRange, CircleHelp, UsersRound } from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import { clearStoredAuth, getStoredAuth } from "../utils/auth";
 
 const featureCards = [
   {
@@ -26,46 +27,24 @@ const featureCards = [
 ];
 
 export default function LandingPage() {
-  const [theme, setTheme] = useState("light");
+  const navigate = useNavigate();
+  const auth = getStoredAuth();
 
-  const themeLabel = useMemo(() => (theme === "light" ? "Switch to dark mode" : "Switch to light mode"), [theme]);
+  const onLogout = () => {
+    clearStoredAuth();
+    navigate("/", { replace: true });
+  };
 
   return (
-    <main className={`landing landing-student ${theme === "dark" ? "theme-dark" : "theme-light"}`}>
-      <section className="student-shell">
-        <header className="student-topbar">
-          <Link className="student-brand" to="/">
-            <span className="student-brand-mark">P</span>
-            <span>
-              PeerPal
-              <small>Student life, simplified</small>
-            </span>
-          </Link>
+    <div className={`landing-home-wrap ${auth?.token ? "landing-home-wrap-with-sidebar" : ""}`}>
+      {auth?.token ? (
+        <div className="landing-sidebar-dock">
+          <Sidebar profile={auth.user} onLogout={onLogout} defaultCollapsed />
+        </div>
+      ) : null}
 
-          <div className="student-topbar-spacer" aria-hidden="true" />
-
-          <div className="student-top-actions">
-            <button
-              type="button"
-              className="theme-toggle"
-              onClick={() => setTheme((current) => (current === "light" ? "dark" : "light"))}
-              aria-label={themeLabel}
-            >
-              {theme === "light" ? <Moon size={16} /> : <SunMedium size={16} />}
-              <span>{theme === "light" ? "Dark" : "Light"}</span>
-            </button>
-            <Link className="mini-link" to="/login">
-              Login
-            </Link>
-            <Link className="btn btn-primary student-cta" to="/register">
-              Get Started
-            </Link>
-            <button type="button" className="menu-dot" aria-label="Menu preview">
-              <Menu size={18} />
-            </button>
-          </div>
-        </header>
-
+      <main className="landing landing-student">
+        <section className="student-shell">
         <section className="student-hero">
           <div className="student-copy student-copy-simple">
             <div className="hero-banner-card">
@@ -112,7 +91,8 @@ export default function LandingPage() {
             </p>
           </article>
         </section>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

@@ -4,38 +4,61 @@ const Module = require("../models/Module");
 const User = require("../models/User");
 const { sendAssignmentDueSoonEmails } = require("../utils/mailer");
 
-const createAssignment = async (req, res) => {
-  try {
-    const { moduleId, assignmentName, publishedDate, deadline } = req.body;
-    const normalizedName = typeof assignmentName === "string" ? assignmentName.trim() : "";
+const normalizeAssignmentPayload = (body = {}) => {
+  const moduleId = typeof body.moduleId === "string" ? body.moduleId.trim() : "";
+  const assignmentName = typeof body.assignmentName === "string" ? body.assignmentName.trim() : "";
+  return {
+    moduleId,
+    assignmentName,
+    publishedDate: body.publishedDate,
+    deadline: body.deadline,
+  };
+};
 
-    if (!moduleId || !normalizedName || !publishedDate || !deadline) {
-      return res.status(400).json({ message: "moduleId, assignmentName, publishedDate and deadline are required" });
-    }
+const validateAssignmentPayload = ({ moduleId, assignmentName, publishedDate, deadline }, options = {}) => {
+  if (!moduleId || !assignmentName || !publishedDate || !deadline) {
+    return "moduleId, assignmentName, publishedDate and deadline are required";
+  }
 
-    const moduleItem = await Module.findById(moduleId);
-    if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+  const published = new Date(publishedDate);
+  const due = new Date(deadline);
+  if (Number.isNaN(published.getTime()) || Number.isNaN(due.getTime())) {
+    return "Invalid publishedDate or deadline";
+  }
+  if (due < published) {
+    return "Deadline must be on or after published date";
+  }
 
-    const published = new Date(publishedDate);
-    const due = new Date(deadline);
-    if (Number.isNaN(published.getTime()) || Number.isNaN(due.getTime())) {
-      return res.status(400).json({ message: "Invalid publishedDate or deadline" });
-    }
-    if (due < published) {
-      return res.status(400).json({ message: "Deadline must be on or after published date" });
-    }
-
+  if (!options.allowPastPublishedDate) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     if (published < todayStart) {
-      return res.status(400).json({ message: "Published date cannot be in the past" });
+      return "Published date cannot be in the past";
     }
+  }
+
+  return null;
+};
+
+const createAssignment = async (req, res) => {
+  try {
+    const payload = normalizeAssignmentPayload(req.body);
+    const validationError = validateAssignmentPayload(payload);
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    const moduleItem = await Module.findById(payload.moduleId);
+    if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+
+    const published = new Date(payload.publishedDate);
+    const due = new Date(payload.deadline);
 
     const assignment = await Assignment.create({
       moduleRef: moduleItem._id,
       moduleCode: moduleItem.moduleCode,
       moduleName: moduleItem.moduleName,
-      assignmentName: normalizedName,
+      assignmentName: payload.assignmentName,
       publishedDate: published,
       deadline: due,
       academicYear: moduleItem.academicYear,
@@ -94,10 +117,47 @@ const createAssignment = async (req, res) => {
   }
 };
 
+const getAssignmentById = async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+    if (req.user.role === "user") {
+      const user = await User.findById(req.user.userId).select("academicYear semester");
+      if (!user || Number(assignment.academicYear) !== Number(user.academicYear) || Number(assignment.semester) !== Number(user.semester)) {
+        return res.status(403).json({ message: "This assignment is not available for your year/semester" });
+      }
+    }
+
+    return res.status(200).json(assignment);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch assignment", error: error.message });
+  }
+};
+
 const listAssignments = async (req, res) => {
   try {
     if (req.user.role === "admin") {
-      const assignments = await Assignment.find({}).sort({ deadline: 1, createdAt: -1 });
+      const query = {};
+      const { year, semester } = req.query;
+
+      if (typeof year !== "undefined" && year !== "") {
+        const parsedYear = Number(year);
+        if (!Number.isInteger(parsedYear) || parsedYear < 1 || parsedYear > 6) {
+          return res.status(400).json({ message: "year must be between 1 and 6" });
+        }
+        query.academicYear = parsedYear;
+      }
+
+      if (typeof semester !== "undefined" && semester !== "") {
+        const parsedSemester = Number(semester);
+        if (!Number.isInteger(parsedSemester) || ![1, 2].includes(parsedSemester)) {
+          return res.status(400).json({ message: "semester must be 1 or 2" });
+        }
+        query.semester = parsedSemester;
+      }
+
+      const assignments = await Assignment.find(query).sort({ deadline: 1, createdAt: -1 });
       return res.status(200).json(assignments);
     }
 
@@ -156,6 +216,37 @@ const updateAssignmentProgress = async (req, res) => {
   }
 };
 
+const updateAssignment = async (req, res) => {
+  try {
+    const payload = normalizeAssignmentPayload(req.body);
+    const validationError = validateAssignmentPayload(payload, { allowPastPublishedDate: true });
+    if (validationError) {
+      return res.status(400).json({ message: validationError });
+    }
+
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) return res.status(404).json({ message: "Assignment not found" });
+
+    const moduleItem = await Module.findById(payload.moduleId);
+    if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+
+    assignment.moduleRef = moduleItem._id;
+    assignment.moduleCode = moduleItem.moduleCode;
+    assignment.moduleName = moduleItem.moduleName;
+    assignment.assignmentName = payload.assignmentName;
+    assignment.publishedDate = new Date(payload.publishedDate);
+    assignment.deadline = new Date(payload.deadline);
+    assignment.academicYear = moduleItem.academicYear;
+    assignment.semester = moduleItem.semester;
+
+    await assignment.save();
+
+    return res.status(200).json({ message: "Assignment updated successfully", assignment });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update assignment", error: error.message });
+  }
+};
+
 const deleteAssignment = async (req, res) => {
   try {
     const { id } = req.params;
@@ -173,4 +264,11 @@ const deleteAssignment = async (req, res) => {
   }
 };
 
-module.exports = { createAssignment, listAssignments, updateAssignmentProgress, deleteAssignment };
+module.exports = {
+  createAssignment,
+  listAssignments,
+  getAssignmentById,
+  updateAssignmentProgress,
+  updateAssignment,
+  deleteAssignment,
+};
