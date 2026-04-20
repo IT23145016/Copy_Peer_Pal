@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpenCheck } from "lucide-react";
+import { ArrowLeft, BookOpenCheck, GraduationCap, Layers3, Sparkles } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -70,51 +70,89 @@ export default function AddModulePage() {
           <h1 className="aa-title">{editId ? "Edit Module" : "Add New Module"}</h1>
         </div>
 
-        <div className="mod-form-wrap">
-          <div className="aa-card">
-            <div className="aa-card-head">
-              <div className="aa-card-icon"><BookOpenCheck size={18} /></div>
+        <div className="mod-layout">
+          <div className="mod-form-wrap">
+            <div className="aa-card">
+              <div className="aa-card-head">
+                <div className="aa-card-icon"><BookOpenCheck size={18} /></div>
+                <div>
+                  <h3>{editId ? "Update Module Details" : "Module Details"}</h3>
+                  <p className="pp-muted">Fill in the module information below.</p>
+                </div>
+              </div>
+
+              {error ? <p className="error">{error}</p> : null}
+              {success ? <p className="success">{success}</p> : null}
+
+              <form className="aa-form" onSubmit={onSubmit} noValidate>
+                <div className="aa-field">
+                  <label>Module Code</label>
+                  <input name="moduleCode" value={form.moduleCode} onChange={onChange} placeholder="e.g. IT2030" />
+                </div>
+                <div className="aa-field">
+                  <label>Module Name</label>
+                  <input name="moduleName" value={form.moduleName} onChange={onChange} placeholder="e.g. Web Development" />
+                </div>
+                <div className="aa-form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                  <div className="aa-field">
+                    <label>Academic Year</label>
+                    <select name="academicYear" value={form.academicYear} onChange={onChange}>
+                      <option value="1">Year 1</option>
+                      <option value="2">Year 2</option>
+                      <option value="3">Year 3</option>
+                      <option value="4">Year 4</option>
+                    </select>
+                  </div>
+                  <div className="aa-field">
+                    <label>Semester</label>
+                    <select name="semester" value={form.semester} onChange={onChange}>
+                      <option value="1">Semester 1</option>
+                      <option value="2">Semester 2</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" className="aa-submit-btn" disabled={saving}>
+                  {saving ? "Saving..." : editId ? "Update Module" : "Add Module"}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <aside className="mod-visual-panel" aria-hidden="true">
+            <div className="mod-visual-glow mod-visual-glow-one" />
+            <div className="mod-visual-glow mod-visual-glow-two" />
+            <div className="mod-visual-card mod-visual-card-main">
+              <span className="mod-visual-chip">
+                <Sparkles size={14} />
+                Module Setup
+              </span>
+              <h3>Build a clear academic structure.</h3>
+              <p>Organize subjects by year and semester with a calmer visual layout.</p>
+            </div>
+
+            <div className="mod-visual-orb mod-visual-orb-large">
+              <GraduationCap size={54} />
+            </div>
+
+            <div className="mod-visual-card mod-visual-card-floating">
+              <div className="mod-visual-icon-wrap">
+                <Layers3 size={20} />
+              </div>
               <div>
-                <h3>{editId ? "Update Module Details" : "Module Details"}</h3>
-                <p className="pp-muted">Fill in the module information below.</p>
+                <strong>Year + Semester</strong>
+                <span>Keep modules grouped in a simple flow.</span>
               </div>
             </div>
 
-            {error ? <p className="error">{error}</p> : null}
-            {success ? <p className="success">{success}</p> : null}
-
-            <form className="aa-form" onSubmit={onSubmit} noValidate>
-              <div className="aa-field">
-                <label>Module Code</label>
-                <input name="moduleCode" value={form.moduleCode} onChange={onChange} placeholder="e.g. IT2030" />
-              </div>
-              <div className="aa-field">
-                <label>Module Name</label>
-                <input name="moduleName" value={form.moduleName} onChange={onChange} placeholder="e.g. Web Development" />
-              </div>
-              <div className="aa-form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                <div className="aa-field">
-                  <label>Academic Year</label>
-                  <select name="academicYear" value={form.academicYear} onChange={onChange}>
-                    <option value="1">Year 1</option>
-                    <option value="2">Year 2</option>
-                    <option value="3">Year 3</option>
-                    <option value="4">Year 4</option>
-                  </select>
-                </div>
-                <div className="aa-field">
-                  <label>Semester</label>
-                  <select name="semester" value={form.semester} onChange={onChange}>
-                    <option value="1">Semester 1</option>
-                    <option value="2">Semester 2</option>
-                  </select>
-                </div>
-              </div>
-              <button type="submit" className="aa-submit-btn" disabled={saving}>
-                {saving ? "Saving..." : editId ? "Update Module" : "Add Module"}
-              </button>
-            </form>
-          </div>
+            <div className="mod-visual-dots">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </aside>
         </div>
       </main>
     </div>

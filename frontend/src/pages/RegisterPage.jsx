@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Moon, SunMedium } from "lucide-react";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
 
@@ -18,19 +17,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("theme") || "light";
-    document.body.classList.toggle("theme-dark", saved === "dark");
-    return saved;
-  });
   const navigate = useNavigate();
-
-  const toggleTheme = () => {
-    const next = theme === "light" ? "dark" : "light";
-    setTheme(next);
-    localStorage.setItem("theme", next);
-    document.body.classList.toggle("theme-dark", next === "dark");
-  };
 
   const onChange = (e) => setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -75,97 +62,84 @@ export default function RegisterPage() {
   );
 
   return (
-    <main className={`landing landing-student reg-page ${theme === "dark" ? "theme-dark" : "theme-light"}`}>
+    <main className="landing landing-student reg-page">
       <section className="student-shell">
-
-        <header className="student-topbar">
-          <Link className="student-brand" to="/">
-            <span className="student-brand-mark">P</span>
-            <span>PeerPal<small>Student life, simplified</small></span>
-          </Link>
-          <div className="student-topbar-spacer" aria-hidden="true" />
-          <div className="student-top-actions">
-            <button type="button" className="theme-toggle" onClick={toggleTheme}>
-              {theme === "light" ? <Moon size={16} /> : <SunMedium size={16} />}
-              <span>{theme === "light" ? "Dark" : "Light"}</span>
-            </button>
-            <Link className="mini-link" to="/">Home</Link>
-          </div>
-        </header>
-
         <div className="reg-center">
-          <form className="login-card reg-card" onSubmit={onSubmit} noValidate>
+          <div className="reg-combined-card">
+            <form className="login-card reg-card" onSubmit={onSubmit} noValidate>
 
-            <div className="login-card-header">
-              <span className="login-badge">New Account</span>
-              <h1 className="login-title">Create Account</h1>
-              <p className="login-subtitle">Join PeerPal — your student ID is auto-generated.</p>
-            </div>
-
-            <div className="login-fields">
-              <div className="login-field">
-                <label htmlFor="reg-name">Full Name</label>
-                <input id="reg-name" name="name" value={form.name} onChange={onChange} placeholder="e.g. Akarshi Dev" required />
+              <div className="login-card-header">
+                <span className="login-badge">New Account</span>
+                <h1 className="login-title">Create Account</h1>
+                <p className="login-subtitle">Join PeerPal — your student ID is auto-generated.</p>
               </div>
 
-              <div className="login-field">
-                <label htmlFor="reg-email">Email</label>
-                <input id="reg-email" name="email" type="email" value={form.email} onChange={onChange} placeholder="you@university.ac" required />
-              </div>
-
-              <div className="reg-two-col">
+              <div className="login-fields">
                 <div className="login-field">
-                  <label htmlFor="reg-password">Password</label>
-                  <div className="password-field">
-                    <input id="reg-password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={onChange} required />
-                    <button type="button" className="password-toggle" onClick={() => setShowPassword((p) => !p)}>
-                      {showPassword ? <EyeOff /> : <EyeOpen />}
-                    </button>
+                  <label htmlFor="reg-name">Full Name</label>
+                  <input id="reg-name" name="name" value={form.name} onChange={onChange} placeholder="e.g. Akarshi Dev" required />
+                </div>
+
+                <div className="login-field">
+                  <label htmlFor="reg-email">Email</label>
+                  <input id="reg-email" name="email" type="email" value={form.email} onChange={onChange} placeholder="you@university.ac" required />
+                </div>
+
+                <div className="reg-two-col">
+                  <div className="login-field">
+                    <label htmlFor="reg-password">Password</label>
+                    <div className="password-field">
+                      <input id="reg-password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={onChange} required />
+                      <button type="button" className="password-toggle" onClick={() => setShowPassword((p) => !p)}>
+                        {showPassword ? <EyeOff /> : <EyeOpen />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="login-field">
+                    <label htmlFor="reg-confirm">Confirm Password</label>
+                    <div className="password-field">
+                      <input id="reg-confirm" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} onChange={onChange} required />
+                      <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword((p) => !p)}>
+                        {showConfirmPassword ? <EyeOff /> : <EyeOpen />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="login-field">
-                  <label htmlFor="reg-confirm">Confirm Password</label>
-                  <div className="password-field">
-                    <input id="reg-confirm" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={form.confirmPassword} onChange={onChange} required />
-                    <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword((p) => !p)}>
-                      {showConfirmPassword ? <EyeOff /> : <EyeOpen />}
-                    </button>
+
+                <div className="reg-three-col">
+                  <div className="login-field">
+                    <label htmlFor="reg-year">Year</label>
+                    <select id="reg-year" name="academicYear" value={form.academicYear} onChange={onChange}>
+                      {[1,2,3,4].map((y) => <option key={y} value={y}>Year {y}</option>)}
+                    </select>
+                  </div>
+                  <div className="login-field">
+                    <label htmlFor="reg-sem">Semester</label>
+                    <select id="reg-sem" name="semester" value={form.semester} onChange={onChange}>
+                      <option value="1">Sem 1</option>
+                      <option value="2">Sem 2</option>
+                    </select>
+                  </div>
+                  <div className="login-field">
+                    <label htmlFor="reg-batch">Batch</label>
+                    <input id="reg-batch" name="batch" value={form.batch} onChange={onChange} placeholder="2024-CS-A" />
                   </div>
                 </div>
               </div>
 
-              <div className="reg-three-col">
-                <div className="login-field">
-                  <label htmlFor="reg-year">Year</label>
-                  <select id="reg-year" name="academicYear" value={form.academicYear} onChange={onChange}>
-                    {[1,2,3,4].map((y) => <option key={y} value={y}>Year {y}</option>)}
-                  </select>
-                </div>
-                <div className="login-field">
-                  <label htmlFor="reg-sem">Semester</label>
-                  <select id="reg-sem" name="semester" value={form.semester} onChange={onChange}>
-                    <option value="1">Sem 1</option>
-                    <option value="2">Sem 2</option>
-                  </select>
-                </div>
-                <div className="login-field">
-                  <label htmlFor="reg-batch">Batch</label>
-                  <input id="reg-batch" name="batch" value={form.batch} onChange={onChange} placeholder="2024-CS-A" />
-                </div>
-              </div>
-            </div>
+              {error ? <p className="error" style={{ marginTop: "0.4rem" }}>{error}</p> : null}
 
-            {error ? <p className="error" style={{ marginTop: "0.4rem" }}>{error}</p> : null}
+              <button type="submit" className="login-submit" disabled={loading}>
+                {loading ? "Creating account..." : "Create Account"}
+              </button>
 
-            <button type="submit" className="login-submit" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
-            </button>
+              <p className="login-footer-text">
+                Already have an account? <Link to="/login">Sign in</Link>
+              </p>
 
-            <p className="login-footer-text">
-              Already have an account? <Link to="/login">Sign in</Link>
-            </p>
-
-          </form>
+            </form>
+            <div className="reg-illustration" aria-hidden="true" />
+          </div>
         </div>
 
       </section>
