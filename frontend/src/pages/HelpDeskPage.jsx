@@ -53,6 +53,8 @@ export default function HelpDeskPage() {
   const [modules, setModules] = useState([]);
   const [requests, setRequests] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [trustedUsers, setTrustedUsers] = useState([]);
+  const [minTrustedDocs, setMinTrustedDocs] = useState(2);
   const [draft, setDraft] = useState({ moduleId: "", message: "", priority: "medium", status: "open" });
   const [editingId, setEditingId] = useState("");
   const [uploadingId, setUploadingId] = useState("");
@@ -91,7 +93,9 @@ export default function HelpDeskPage() {
       setProfile(meRes.data);
       setModules(modRes.data);
       setRequests(reqRes.data);
-      setLeaderboard(lbRes.data);
+      setLeaderboard(lbRes.data?.leaderboard || []);
+      setTrustedUsers(lbRes.data?.trustedUsers || []);
+      setMinTrustedDocs(lbRes.data?.minDocs || 2);
       setDraft((prev) => ({ ...prev, moduleId: prev.moduleId || modRes.data?.[0]?._id || "" }));
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load help desk");
@@ -578,9 +582,18 @@ export default function HelpDeskPage() {
                 </div>
                 <div>
                   <h3>Most Trusted Users</h3>
-                  <p className="pp-muted">Minimum 5 approved documents required.</p>
+                  <p className="pp-muted">Minimum {minTrustedDocs} approved documents required.</p>
                 </div>
               </div>
+              {trustedUsers.length ? (
+                <p className="pp-muted" style={{ marginBottom: 16 }}>
+                  Current trusted users: {trustedUsers.map((item) => item.name).join(", ")}
+                </p>
+              ) : (
+                <p className="pp-muted" style={{ marginBottom: 16 }}>
+                  Current trusted users: none yet.
+                </p>
+              )}
               <div className="hd-lb-list">
                 {leaderboard.length ? (
                   leaderboard.map((item, i) => (

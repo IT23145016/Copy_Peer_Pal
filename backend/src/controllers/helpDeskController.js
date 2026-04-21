@@ -255,7 +255,7 @@ const approveHelpDocument = async (req, res) => {
 
 const getLeaderboard = async (req, res) => {
   try {
-    const minDocs = Number(req.query.minDocs) || 5;
+    const minDocs = Number(req.query.minDocs) || 2;
 
     const leaderboard = await HelpRequest.aggregate([
       { $unwind: "$documents" },
@@ -315,7 +315,16 @@ const getLeaderboard = async (req, res) => {
       { $limit: 20 },
     ]);
 
-    return res.status(200).json(leaderboard);
+    return res.status(200).json({
+      minDocs,
+      leaderboard,
+      trustedUsers: leaderboard.map((item) => ({
+        userId: item.userId,
+        name: item.name,
+        approvedDocsCount: item.approvedDocsCount,
+      })),
+      trustedUsersCount: leaderboard.length,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch leaderboard", error: error.message });
   }
