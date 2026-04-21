@@ -59,7 +59,9 @@ const createHelpRequest = async (req, res) => {
 
 const listHelpRequests = async (req, res) => {
   try {
-    const requests = await HelpRequest.find({})
+    const requests = await HelpRequest.find({
+      hiddenFor: { $ne: req.user.userId },
+    })
       .populate("createdBy", "name email")
       .populate("documents.uploadedBy", "name")
       .sort({ createdAt: -1 });
@@ -72,7 +74,10 @@ const listHelpRequests = async (req, res) => {
 
 const listMyHelpRequests = async (req, res) => {
   try {
-    const requests = await HelpRequest.find({ createdBy: req.user.userId })
+    const requests = await HelpRequest.find({
+      createdBy: req.user.userId,
+      hiddenFor: { $ne: req.user.userId },
+    })
       .populate("createdBy", "name email")
       .populate("documents.uploadedBy", "name")
       .sort({ createdAt: -1 });
@@ -144,6 +149,25 @@ const deleteHelpRequest = async (req, res) => {
     return res.status(200).json({ message: "Help request deleted" });
   } catch (error) {
     return res.status(500).json({ message: "Failed to delete help request", error: error.message });
+  }
+};
+
+const clearHelpRequestForMe = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await HelpRequest.findById(id);
+    if (!existing) return res.status(404).json({ message: "Help request not found" });
+    if (existing.status !== "received") {
+      return res.status(400).json({ message: "Only received notes can be cleared from your dashboard" });
+    }
+
+    await HelpRequest.findByIdAndUpdate(id, {
+      $addToSet: { hiddenFor: req.user.userId },
+    });
+
+    return res.status(200).json({ message: "Help request cleared from your dashboard" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to clear help request", error: error.message });
   }
 };
 
@@ -231,7 +255,7 @@ const approveHelpDocument = async (req, res) => {
 
 const getLeaderboard = async (req, res) => {
   try {
-    const minDocs = Number(req.query.minDocs) || 5;
+    const minDocs = Number(req.query.minDocs) || 2;
 
     const leaderboard = await HelpRequest.aggregate([
       { $unwind: "$documents" },
@@ -291,7 +315,16 @@ const getLeaderboard = async (req, res) => {
       { $limit: 20 },
     ]);
 
-    return res.status(200).json(leaderboard);
+    return res.status(200).json({
+      minDocs,
+      leaderboard,
+      trustedUsers: leaderboard.map((item) => ({
+        userId: item.userId,
+        name: item.name,
+        approvedDocsCount: item.approvedDocsCount,
+      })),
+      trustedUsersCount: leaderboard.length,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch leaderboard", error: error.message });
   }
@@ -303,6 +336,7 @@ module.exports = {
   listMyHelpRequests,
   updateHelpRequest,
   deleteHelpRequest,
+  clearHelpRequestForMe,
   uploadHelpDocument,
   approveHelpDocument,
   getLeaderboard,
