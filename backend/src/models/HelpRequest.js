@@ -37,6 +37,12 @@ const helpRequestSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    hiddenFor: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     documents: [
       {
         fileName: { type: String, required: true, trim: true },

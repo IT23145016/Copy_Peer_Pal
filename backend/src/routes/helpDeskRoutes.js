@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   approveHelpDocument,
+  clearHelpRequestForMe,
   createHelpRequest,
   deleteHelpRequest,
   getLeaderboard,
@@ -19,6 +20,7 @@ router.get("/leaderboard", auth, getLeaderboard);
 router.post("/", auth, createHelpRequest);
 router.put("/:id", auth, updateHelpRequest);
 router.delete("/:id", auth, deleteHelpRequest);
+router.post("/:id/clear", auth, clearHelpRequestForMe);
 router.post("/:id/documents", auth, uploadHelpDocument);
 router.post("/:id/documents/:documentId/approve", auth, approveHelpDocument);
 

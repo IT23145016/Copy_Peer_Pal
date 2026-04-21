@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CircleHelp, Download, Flag, Plus, Trophy, Upload, UsersRound, X } from "lucide-react";
+import { CircleHelp, Download, Flag, Plus, Trash2, Trophy, Upload, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -53,16 +53,7 @@ export default function HelpDeskPage() {
   const [modules, setModules] = useState([]);
   const [requests, setRequests] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [batchTops, setBatchTops] = useState([]);
-  const [myBatchTopRequests, setMyBatchTopRequests] = useState([]);
-  const [batchTopPendingGroups, setBatchTopPendingGroups] = useState([]);
-  const [studySessions, setStudySessions] = useState([]);
-  const [proposals, setProposals] = useState([]);
   const [draft, setDraft] = useState({ moduleId: "", message: "", priority: "medium", status: "open" });
-  const [batchTopDraft, setBatchTopDraft] = useState({ moduleId: "", note: "", targetBatchTop: "" });
-  const [sessionDraft, setSessionDraft] = useState({ moduleId: "", date: "", startTime: "", endTime: "", meetingLink: "" });
-  const [proposalDraft, setProposalDraft] = useState({ moduleId: "", description: "", date: "", startTime: "", endTime: "" });
-  const [meetingLinkDrafts, setMeetingLinkDrafts] = useState({});
   const [editingId, setEditingId] = useState("");
   const [uploadingId, setUploadingId] = useState("");
   const [uploadFiles, setUploadFiles] = useState({});
@@ -71,144 +62,213 @@ export default function HelpDeskPage() {
   const [saving, setSaving] = useState(false);
   const [activeView, setActiveView] = useState("requests");
   const [showForm, setShowForm] = useState(false);
+  const [isClearMode, setIsClearMode] = useState(false);
+  const [selectedRequestIds, setSelectedRequestIds] = useState([]);
+  const [confirmAction, setConfirmAction] = useState(null);
   const navigate = useNavigate();
   const auth = getStoredAuth();
 
   const canSubmit = useMemo(() => draft.moduleId && draft.message.trim(), [draft.message, draft.moduleId]);
-  const canSubmitBatchTopRequest = useMemo(() => batchTopDraft.moduleId && batchTopDraft.note.trim() && batchTopDraft.targetBatchTop, [batchTopDraft]);
+  const ownRequests = useMemo(() => requests.filter((item) => item.isOwner), [requests]);
+  const receivedRequests = useMemo(
+    () => requests.filter((item) => item.status === "received"),
+    [requests]
+  );
+  const receivedRequestIds = useMemo(
+    () => receivedRequests.map((item) => item._id),
+    [receivedRequests]
+  );
 
   const loadData = async () => {
     try {
-      const [meRes, modRes, reqRes, lbRes, btRes, myBtRes, propRes, sessRes] = await Promise.all([
-        api.get("/auth/me"), api.get("/modules"), api.get("/helpdesk"),
-        api.get("/helpdesk/leaderboard"), api.get("/study-support/batch-tops"),
-        api.get("/study-support/requests/my"), api.get("/study-support/proposals"),
-        api.get("/study-support/sessions"),
+      const [meRes, modRes, reqRes, lbRes] = await Promise.all([
+        api.get("/auth/me"),
+        api.get("/modules"),
+        api.get("/helpdesk"),
+        api.get("/helpdesk/leaderboard"),
       ]);
-      setProfile(meRes.data); setModules(modRes.data); setRequests(reqRes.data);
-      setLeaderboard(lbRes.data); setBatchTops(btRes.data); setMyBatchTopRequests(myBtRes.data);
-      setProposals(propRes.data); setStudySessions(sessRes.data);
-      setDraft((p) => ({ ...p, moduleId: p.moduleId || modRes.data?.[0]?._id || "" }));
-      setBatchTopDraft((p) => ({ ...p, moduleId: p.moduleId || modRes.data?.[0]?._id || "", targetBatchTop: p.targetBatchTop || btRes.data?.[0]?._id || "" }));
-      setProposalDraft((p) => ({ ...p, moduleId: p.moduleId || modRes.data?.[0]?._id || "" }));
-      if (meRes.data?.isBatchTop) {
-        const grpRes = await api.get("/study-support/batch-top/pending-groups");
-        setBatchTopPendingGroups(grpRes.data);
-      } else setBatchTopPendingGroups([]);
-    } catch (err) { setError(err.response?.data?.message || "Failed to load help desk"); }
+
+      setProfile(meRes.data);
+      setModules(modRes.data);
+      setRequests(reqRes.data);
+      setLeaderboard(lbRes.data);
+      setDraft((prev) => ({ ...prev, moduleId: prev.moduleId || modRes.data?.[0]?._id || "" }));
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load help desk");
+    }
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const onLogout = () => { clearStoredAuth(); navigate("/"); };
-  const onDraftChange = (e) => setDraft((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const onLogout = () => {
+    clearStoredAuth();
+    navigate("/");
+  };
+
+  const onDraftChange = (e) => setDraft((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   const clearDraft = () => {
-    setEditingId(""); setShowForm(false);
+    setEditingId("");
+    setShowForm(false);
     setDraft({ moduleId: modules[0]?._id || "", message: "", priority: "medium", status: "open" });
   };
 
+  const exitClearMode = () => {
+    setIsClearMode(false);
+    setSelectedRequestIds([]);
+  };
+
   const onSubmit = async (e) => {
-    e.preventDefault(); setError(""); setStatus("");
-    if (!canSubmit) { setError("Module and message are required"); return; }
+    e.preventDefault();
+    setError("");
+    setStatus("");
+
+    if (!canSubmit) {
+      setError("Module and message are required");
+      return;
+    }
+
     try {
       setSaving(true);
-      if (editingId) { await api.put(`/helpdesk/${editingId}`, draft); setStatus("Request updated"); }
-      else { await api.post("/helpdesk", draft); setStatus("Request posted"); }
-      clearDraft(); await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to save request"); }
-    finally { setSaving(false); }
-  };
-
-  const onSendBatchTopRequest = async (e) => {
-    e.preventDefault(); setError(""); setStatus("");
-    if (!canSubmitBatchTopRequest) { setError("Module, note and Batch Top are required"); return; }
-    try {
-      await api.post("/study-support/requests", batchTopDraft);
-      setStatus("Request sent to Batch Top");
-      setBatchTopDraft((p) => ({ ...p, note: "" }));
+      if (editingId) {
+        await api.put(`/helpdesk/${editingId}`, draft);
+        setStatus("Request updated");
+      } else {
+        await api.post("/helpdesk", draft);
+        setStatus("Request posted");
+      }
+      clearDraft();
       await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to send request"); }
-  };
-
-  const onStartSession = async (e) => {
-    e.preventDefault(); setError(""); setStatus("");
-    try {
-      await api.post("/study-support/sessions/start", sessionDraft);
-      setStatus("Study session started");
-      setSessionDraft({ moduleId: "", date: "", startTime: "", endTime: "", meetingLink: "" });
-      await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to start session"); }
-  };
-
-  const onCreateProposal = async (e) => {
-    e.preventDefault(); setError(""); setStatus("");
-    try {
-      await api.post("/study-support/proposals", proposalDraft);
-      setStatus("Proposal created");
-      setProposalDraft({ moduleId: modules[0]?._id || "", description: "", date: "", startTime: "", endTime: "" });
-      await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to create proposal"); }
-  };
-
-  const onVoteProposal = async (proposalId, voteType) => {
-    try {
-      setError(""); setStatus("");
-      const { data } = await api.post(`/study-support/proposals/${proposalId}/vote`, { voteType });
-      setStatus(data?.approvalNotice?.approved ? `Approved! ${data.approvalNotice.emailSentCount || 0} users notified.` : "Vote saved");
-      await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to vote"); }
-  };
-
-  const onSetMeetingLink = async (proposalId) => {
-    try {
-      const meetingLink = meetingLinkDrafts[proposalId] || "";
-      if (!meetingLink.trim()) { setError("Meeting link is required"); return; }
-      await api.post(`/study-support/proposals/${proposalId}/meeting-link`, { meetingLink });
-      setStatus("Meeting link added"); await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to set meeting link"); }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to save request");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onEdit = (item) => {
-    setShowForm(true); setEditingId(item._id);
-    setDraft({ moduleId: item.moduleRef?._id || item.moduleRef || "", message: item.message || "", priority: item.priority || "medium", status: item.status || "open" });
+    setShowForm(true);
+    setEditingId(item._id);
+    setDraft({
+      moduleId: item.moduleRef?._id || item.moduleRef || "",
+      message: item.message || "",
+      priority: item.priority || "medium",
+      status: item.status || "open",
+    });
   };
 
   const onDelete = async (id) => {
     try {
-      setError(""); setStatus("");
+      setError("");
+      setStatus("");
       await api.delete(`/helpdesk/${id}`);
       if (editingId === id) clearDraft();
-      setStatus("Request deleted"); await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to delete"); }
+      setSelectedRequestIds((prev) => prev.filter((item) => item !== id));
+      setStatus("Request deleted");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete");
+    }
+  };
+
+  const onClearForMe = async (id) => {
+    try {
+      setError("");
+      setStatus("");
+      await api.post(`/helpdesk/${id}/clear`);
+      setSelectedRequestIds((prev) => prev.filter((item) => item !== id));
+      setStatus("Note cleared from your dashboard");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to clear note");
+    }
+  };
+
+  const onToggleRequestSelection = (requestId) => {
+    setSelectedRequestIds((prev) =>
+      prev.includes(requestId) ? prev.filter((id) => id !== requestId) : [...prev, requestId]
+    );
+  };
+
+  const onSelectAllOwnRequests = () => {
+    setSelectedRequestIds(receivedRequestIds);
+  };
+
+  const onClearSelectedRequests = async () => {
+    try {
+      setError("");
+      setStatus("");
+      await Promise.all(selectedRequestIds.map((id) => api.post(`/helpdesk/${id}/clear`)));
+      setConfirmAction(null);
+      setStatus(`${selectedRequestIds.length} note(s) cleared`);
+      exitClearMode();
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to clear selected notes");
+    }
+  };
+
+  const onClearAllOwnRequests = async () => {
+    try {
+      setError("");
+      setStatus("");
+      await Promise.all(receivedRequestIds.map((id) => api.post(`/helpdesk/${id}/clear`)));
+      setConfirmAction(null);
+      setStatus("All received notes were cleared from your dashboard");
+      exitClearMode();
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to clear received notes");
+    }
   };
 
   const onUploadDoc = async (id) => {
     const file = uploadFiles[id];
     try {
-      if (!file) { setError("Choose a document first"); return; }
-      if (file.size > 1024 * 1024 * 2) { setError("Document must be less than 2MB"); return; }
-      setError(""); setStatus("");
+      if (!file) {
+        setError("Choose a document first");
+        return;
+      }
+      if (file.size > 1024 * 1024 * 2) {
+        setError("Document must be less than 2MB");
+        return;
+      }
+
+      setError("");
+      setStatus("");
       const fileData = await toDataUrl(file);
       setUploadingId(id);
       await api.post(`/helpdesk/${id}/documents`, { fileName: file.name, fileType: file.type, fileData });
-      setUploadFiles((prev) => { const next = { ...prev }; delete next[id]; return next; });
-      setStatus("Document uploaded."); await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to upload"); }
-    finally { setUploadingId(""); }
+      setUploadFiles((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setStatus("Document uploaded.");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to upload");
+    } finally {
+      setUploadingId("");
+    }
   };
 
   const onApproveDoc = async (requestId, documentId) => {
     try {
-      setError(""); setStatus("");
+      setError("");
+      setStatus("");
       await api.post(`/helpdesk/${requestId}/documents/${documentId}/approve`);
-      setStatus("Document approved."); await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to approve"); }
+      setStatus("Document approved.");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to approve");
+    }
   };
 
   const tabs = [
     { key: "requests", label: "Requests", icon: <CircleHelp size={15} /> },
-    { key: "batchtop", label: "Batch Top", icon: <UsersRound size={15} /> },
     { key: "leaderboard", label: "Leaderboard", icon: <Trophy size={15} /> },
   ];
 
@@ -216,22 +276,55 @@ export default function HelpDeskPage() {
     <div className="pp-layout">
       <Sidebar profile={profile || auth?.user} onLogout={onLogout} />
       <main className="pp-main">
-
-        {/* Header */}
         <div className="hd-header">
           <div>
             <h1 className="hd-title">Help Desk</h1>
             <p className="pp-muted">Ask for help, share resources, and support your peers.</p>
           </div>
-          <button type="button" className="hd-new-btn" onClick={() => { setShowForm(true); setEditingId(""); setDraft({ moduleId: modules[0]?._id || "", message: "", priority: "medium", status: "open" }); }}>
-            <Plus size={16} /> New Request
-          </button>
+          <div className="hd-header-actions">
+            {activeView === "requests" ? (
+              <button
+                type="button"
+                className={`hd-clear-btn ${isClearMode ? "active" : ""}`}
+                onClick={() => {
+                  if (isClearMode) {
+                    exitClearMode();
+                    return;
+                  }
+                  setIsClearMode(true);
+                }}
+                disabled={!receivedRequests.length}
+              >
+                <Trash2 size={16} /> {isClearMode ? "Cancel Clear" : "Clear Received"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="hd-new-btn"
+              onClick={() => {
+                setShowForm(true);
+                setEditingId("");
+                setDraft({ moduleId: modules[0]?._id || "", message: "", priority: "medium", status: "open" });
+              }}
+            >
+              <Plus size={16} /> New Request
+            </button>
+          </div>
         </div>
 
-        {/* Tabs */}
         <div className="hd-tabs">
           {tabs.map((t) => (
-            <button key={t.key} type="button" className={`hd-tab ${activeView === t.key ? "active" : ""}`} onClick={() => setActiveView(t.key)}>
+            <button
+              key={t.key}
+              type="button"
+              className={`hd-tab ${activeView === t.key ? "active" : ""}`}
+              onClick={() => {
+                setActiveView(t.key);
+                if (t.key !== "requests") {
+                  exitClearMode();
+                }
+              }}
+            >
               {t.icon} {t.label}
             </button>
           ))}
@@ -240,38 +333,56 @@ export default function HelpDeskPage() {
         {error ? <p className="error">{error}</p> : null}
         {status ? <p className="success">{status}</p> : null}
 
-        {/* New/Edit Request Modal */}
         {showForm ? (
           <div className="hd-modal-overlay">
             <div className="hd-modal">
               <div className="hd-modal-head">
                 <h3>{editingId ? "Edit Request" : "New Help Request"}</h3>
-                <button type="button" className="hd-modal-close" onClick={clearDraft}><X size={18} /></button>
+                <button type="button" className="hd-modal-close" onClick={clearDraft}>
+                  <X size={18} />
+                </button>
               </div>
               <form onSubmit={onSubmit} noValidate className="hd-modal-form">
                 <div className="aa-field">
                   <label>Module</label>
                   <select name="moduleId" value={draft.moduleId} onChange={onDraftChange}>
                     <option value="">Select Module</option>
-                    {modules.map((m) => <option key={m._id} value={m._id}>{m.moduleCode} — {m.moduleName}</option>)}
+                    {modules.map((m) => (
+                      <option key={m._id} value={m._id}>
+                        {m.moduleCode} - {m.moduleName}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="aa-field">
                   <label>Message</label>
-                  <textarea name="message" value={draft.message} onChange={onDraftChange} placeholder="e.g. I need past papers for ITPM module" rows={4} />
+                  <textarea
+                    name="message"
+                    value={draft.message}
+                    onChange={onDraftChange}
+                    placeholder="e.g. I need past papers for ITPM module"
+                    rows={4}
+                  />
                 </div>
                 <div className="aa-field">
                   <label>Priority</label>
                   <div className="hd-priority-row">
                     {["medium", "urgent"].map((p) => (
-                      <button key={p} type="button" className={`hd-priority-btn ${draft.priority === p ? "active-" + p : ""}`} onClick={() => setDraft((prev) => ({ ...prev, priority: p }))}>
+                      <button
+                        key={p}
+                        type="button"
+                        className={`hd-priority-btn ${draft.priority === p ? `active-${p}` : ""}`}
+                        onClick={() => setDraft((prev) => ({ ...prev, priority: p }))}
+                      >
                         <Flag size={13} /> {p.charAt(0).toUpperCase() + p.slice(1)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="hd-modal-actions">
-                  <button type="button" className="hd-cancel-btn" onClick={clearDraft}>Cancel</button>
+                  <button type="button" className="hd-cancel-btn" onClick={clearDraft}>
+                    Cancel
+                  </button>
                   <button type="submit" className="hd-submit-btn" disabled={!canSubmit || saving}>
                     {saving ? "Saving..." : editingId ? "Update" : "Post Request"}
                   </button>
@@ -281,179 +392,277 @@ export default function HelpDeskPage() {
           </div>
         ) : null}
 
-        {/* Requests tab */}
         {activeView === "requests" ? (
-          <div className="hd-requests-grid">
-            {requests.length ? requests.map((item) => {
-              const s = STATUS_COLORS[item.status] || STATUS_COLORS.open;
-              const canEdit = item.isOwner && !item.hasDocuments;
-              return (
-                <article key={item._id} className="hd-card">
-                  <div className="hd-card-top">
-                    <div className="hd-card-meta">
-                      <span className="hd-module-badge">{item.moduleCode}</span>
-                      <span className="hd-card-by">by {item.createdBy?.name || "Unknown"}</span>
+          <>
+            {isClearMode ? (
+              <div className="hd-clear-panel">
+                <div>
+                  <strong>Clear Received Notes</strong>
+                  <p className="pp-muted">
+                    Select from any received notes, or clear all received notes from your dashboard at once.
+                  </p>
+                </div>
+                <div className="hd-clear-actions">
+                  <button
+                    type="button"
+                    className="hd-clear-action-btn"
+                    onClick={onSelectAllOwnRequests}
+                    disabled={!receivedRequestIds.length}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="hd-clear-action-btn hd-clear-action-danger"
+                    onClick={() => setConfirmAction({ type: "selected" })}
+                    disabled={!selectedRequestIds.length}
+                  >
+                    Clear Selected
+                  </button>
+                  <button
+                    type="button"
+                    className="hd-clear-action-btn hd-clear-action-danger"
+                    onClick={() => setConfirmAction({ type: "all" })}
+                    disabled={!receivedRequestIds.length}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="hd-requests-grid">
+            {requests.length ? (
+              requests.map((item) => {
+                const s = STATUS_COLORS[item.status] || STATUS_COLORS.open;
+                const canEdit = item.isOwner && !item.hasDocuments;
+                const isSelected = selectedRequestIds.includes(item._id);
+                const canClearReceived = item.status === "received";
+                const canDeleteRequest = item.isOwner;
+                const showSelection = isClearMode && canClearReceived;
+
+                return (
+                  <article key={item._id} className={`hd-card ${isClearMode && isSelected ? "hd-card-selected" : ""}`}>
+                    <div className="hd-card-top">
+                      <div className="hd-card-meta">
+                        {showSelection ? (
+                          <label className="hd-select-note">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => onToggleRequestSelection(item._id)}
+                            />
+                            <span>Select</span>
+                          </label>
+                        ) : null}
+                        <span className="hd-module-badge">{item.moduleCode}</span>
+                        <span className="hd-card-by">by {item.createdBy?.name || "Unknown"}</span>
+                      </div>
+                      <div className="hd-card-badges">
+                        {item.status === "open" ? (
+                          <span
+                            className="hd-priority-chip"
+                            style={{
+                              background: item.priority === "urgent" ? "rgba(239,68,68,0.1)" : "rgba(245,128,37,0.1)",
+                              color: item.priority === "urgent" ? "#dc2626" : "#c85a0a",
+                            }}
+                          >
+                            <Flag size={11} /> {item.priority}
+                          </span>
+                        ) : null}
+                        <span className="hd-status-chip" style={{ background: s.bg, color: s.color }}>
+                          {s.label}
+                        </span>
+                      </div>
                     </div>
-                    <div className="hd-card-badges">
-                      <span className="hd-priority-chip" style={{ background: item.priority === "urgent" ? "rgba(239,68,68,0.1)" : "rgba(245,128,37,0.1)", color: item.priority === "urgent" ? "#dc2626" : "#c85a0a" }}>
-                        <Flag size={11} /> {item.priority}
-                      </span>
-                      <span className="hd-status-chip" style={{ background: s.bg, color: s.color }}>{s.label}</span>
+
+                    <p className="hd-card-msg">{item.message}</p>
+
+                    <div className="hd-card-actions">
+                      {canEdit ? (
+                        <button type="button" className="hd-action-edit" onClick={() => onEdit(item)}>
+                          Edit
+                        </button>
+                      ) : null}
+                      {canDeleteRequest ? (
+                        <button
+                          type="button"
+                          className="hd-action-delete"
+                          onClick={() => setConfirmAction({ type: "delete", requestId: item._id })}
+                        >
+                          Delete Request
+                        </button>
+                      ) : null}
+                      {canClearReceived ? (
+                        <button
+                          type="button"
+                          className="hd-action-delete"
+                          onClick={() => setConfirmAction({ type: "single", requestId: item._id })}
+                        >
+                          Clear Note
+                        </button>
+                      ) : null}
                     </div>
-                  </div>
 
-                  <p className="hd-card-msg">{item.message}</p>
+                    <div className="hd-upload-row">
+                      <label className="hd-file-label">
+                        <Upload size={13} /> {uploadFiles[item._id] ? uploadFiles[item._id].name : "Choose file"}
+                        <input
+                          type="file"
+                          style={{ display: "none" }}
+                          onChange={(e) =>
+                            setUploadFiles((prev) => ({ ...prev, [item._id]: e.target.files?.[0] || undefined }))
+                          }
+                        />
+                      </label>
+                      <button type="button" className="hd-upload-btn" onClick={() => onUploadDoc(item._id)}>
+                        {uploadingId === item._id ? "Uploading..." : "Upload"}
+                      </button>
+                    </div>
 
-                  <div className="hd-card-actions">
-                    {canEdit ? <button type="button" className="hd-action-edit" onClick={() => onEdit(item)}>Edit</button> : null}
-                    {item.isOwner || profile?.role === "admin" ? <button type="button" className="hd-action-delete" onClick={() => onDelete(item._id)}>Delete</button> : null}
-                  </div>
-
-                  <div className="hd-upload-row">
-                    <label className="hd-file-label">
-                      <Upload size={13} /> {uploadFiles[item._id] ? uploadFiles[item._id].name : "Choose file"}
-                      <input type="file" style={{ display: "none" }} onChange={(e) => setUploadFiles((prev) => ({ ...prev, [item._id]: e.target.files?.[0] || undefined }))} />
-                    </label>
-                    <button type="button" className="hd-upload-btn" onClick={() => onUploadDoc(item._id)}>
-                      {uploadingId === item._id ? "Uploading..." : "Upload"}
-                    </button>
-                  </div>
-
-                  {item.documents?.length ? (
-                    <div className="hd-doc-list">
-                      {item.documents.map((doc) => (
-                        <div key={doc._id} className="hd-doc-row">
-                          <span className="hd-doc-name">{doc.fileName}</span>
-                          <div className="hd-doc-actions">
-                            <button type="button" className="hd-doc-btn" onClick={() => openDataUrl(doc.fileData)}>Open</button>
-                            <button type="button" className="hd-doc-btn" onClick={() => downloadDataUrl(doc.fileData, doc.fileName)}><Download size={12} /></button>
-                            {doc.approved ? (
-                              <span className="hd-approved-chip">✓ Approved</span>
-                            ) : item.isOwner && String(doc.uploadedBy?._id || doc.uploadedBy) !== String(profile?._id) ? (
-                              <button type="button" className="hd-doc-btn hd-approve-btn" onClick={() => onApproveDoc(item._id, doc._id)}>Approve</button>
-                            ) : (
-                              <span className="hd-pending-chip">Pending</span>
-                            )}
+                    {item.documents?.length ? (
+                      <div className="hd-doc-list">
+                        {item.documents.map((doc) => (
+                          <div key={doc._id} className="hd-doc-row">
+                            <span className="hd-doc-name">{doc.fileName}</span>
+                            <div className="hd-doc-actions">
+                              <button type="button" className="hd-doc-btn" onClick={() => openDataUrl(doc.fileData)}>
+                                Open
+                              </button>
+                              <button
+                                type="button"
+                                className="hd-doc-btn"
+                                onClick={() => downloadDataUrl(doc.fileData, doc.fileName)}
+                              >
+                                <Download size={12} />
+                              </button>
+                              {doc.approved ? (
+                                <span className="hd-approved-chip">Approved</span>
+                              ) : item.isOwner && String(doc.uploadedBy?._id || doc.uploadedBy) !== String(profile?._id) ? (
+                                <button
+                                  type="button"
+                                  className="hd-doc-btn hd-approve-btn"
+                                  onClick={() => onApproveDoc(item._id, doc._id)}
+                                >
+                                  Approve
+                                </button>
+                              ) : (
+                                <span className="hd-pending-chip">Pending</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </article>
-              );
-            }) : (
+                        ))}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            ) : (
               <div className="hd-empty">
                 <CircleHelp size={40} />
                 <p>No requests yet. Be the first to ask for help!</p>
               </div>
             )}
-          </div>
+            </div>
+          </>
         ) : null}
 
-        {/* Batch Top tab */}
-        {activeView === "batchtop" ? (
-          <div className="hd-batchtop-grid">
-            <div className="aa-card">
-              <div className="aa-card-head">
-                <div className="aa-card-icon"><UsersRound size={18} /></div>
-                <div><h3>Request from Batch Top</h3><p className="pp-muted">Select a Batch Top and describe what you need.</p></div>
-              </div>
-              <div className="hd-bt-list">
-                {batchTops.map((bt) => (
-                  <button key={bt._id} type="button" className={`hd-bt-card ${batchTopDraft.targetBatchTop === bt._id ? "active" : ""}`} onClick={() => setBatchTopDraft((p) => ({ ...p, targetBatchTop: bt._id }))}>
-                    <div className="hd-bt-avatar">{(bt.name || "U").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</div>
-                    <div><strong>{bt.name}</strong><span>{bt.moduleSpecialization || "General"}</span></div>
-                  </button>
-                ))}
-              </div>
-              <form className="aa-form" onSubmit={onSendBatchTopRequest} noValidate>
-                <div className="aa-field">
-                  <label>Module</label>
-                  <select value={batchTopDraft.moduleId} onChange={(e) => setBatchTopDraft((p) => ({ ...p, moduleId: e.target.value }))}>
-                    <option value="">Select Module</option>
-                    {modules.map((m) => <option key={m._id} value={m._id}>{m.moduleCode} — {m.moduleName}</option>)}
-                  </select>
-                </div>
-                <div className="aa-field">
-                  <label>Note</label>
-                  <textarea value={batchTopDraft.note} onChange={(e) => setBatchTopDraft((p) => ({ ...p, note: e.target.value }))} placeholder="I need help with Lesson 3..." rows={3} />
-                </div>
-                <button type="submit" className="aa-submit-btn">Send Request</button>
-              </form>
-            </div>
-
-            <div className="aa-card">
-              <div className="aa-card-head">
-                <div className="aa-card-icon"><CircleHelp size={18} /></div>
-                <div><h3>My Batch Top Requests</h3></div>
-              </div>
-              <div className="hd-bt-requests">
-                {myBatchTopRequests.length ? myBatchTopRequests.map((item) => (
-                  <div key={item._id} className="hd-bt-req-row">
-                    <span className="hd-module-badge">{item.moduleCode}</span>
-                    <p className="hd-card-msg">{item.note}</p>
-                    <p className="pp-muted">To: {item.targetBatchTop?.name || "—"} · {item.status}</p>
-                  </div>
-                )) : <p className="pp-muted">No requests sent yet.</p>}
-              </div>
-
-              {profile?.isBatchTop ? (
-                <>
-                  <div className="aa-card-head" style={{ marginTop: "1rem" }}>
-                    <div className="aa-card-icon"><UsersRound size={18} /></div>
-                    <div><h3>Pending Groups</h3></div>
-                  </div>
-                  {batchTopPendingGroups.map((group) => (
-                    <div key={group.moduleId} className="hd-bt-req-row">
-                      <strong>{group.moduleCode} — {group.moduleName}</strong>
-                      <p className="pp-muted">{group.requestCount} requests · {group.participantCount} participants</p>
-                      <button type="button" className="aa-submit-btn" style={{ marginTop: "0.5rem" }} disabled={!group.canStartSession} onClick={() => setSessionDraft((p) => ({ ...p, moduleId: group.moduleId }))}>
-                        {group.canStartSession ? "Start Session" : "Need 1+ request"}
-                      </button>
-                    </div>
-                  ))}
-                  {sessionDraft.moduleId ? (
-                    <form className="aa-form" onSubmit={onStartSession} noValidate style={{ marginTop: "1rem" }}>
-                      <div className="aa-form-row" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
-                        <div className="aa-field"><label>Date</label><input type="date" value={sessionDraft.date} onChange={(e) => setSessionDraft((p) => ({ ...p, date: e.target.value }))} /></div>
-                        <div className="aa-field"><label>Start</label><input type="time" value={sessionDraft.startTime} onChange={(e) => setSessionDraft((p) => ({ ...p, startTime: e.target.value }))} /></div>
-                        <div className="aa-field"><label>End</label><input type="time" value={sessionDraft.endTime} onChange={(e) => setSessionDraft((p) => ({ ...p, endTime: e.target.value }))} /></div>
-                      </div>
-                      <div className="aa-field"><label>Meeting Link</label><input placeholder="Teams link" value={sessionDraft.meetingLink} onChange={(e) => setSessionDraft((p) => ({ ...p, meetingLink: e.target.value }))} /></div>
-                      <button type="submit" className="aa-submit-btn">Create Session</button>
-                    </form>
-                  ) : null}
-                </>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Leaderboard tab */}
         {activeView === "leaderboard" ? (
           <div className="hd-leaderboard">
             <div className="aa-card">
               <div className="aa-card-head">
-                <div className="aa-card-icon"><Trophy size={18} /></div>
-                <div><h3>Most Trusted Users</h3><p className="pp-muted">Minimum 5 approved documents required.</p></div>
+                <div className="aa-card-icon">
+                  <Trophy size={18} />
+                </div>
+                <div>
+                  <h3>Most Trusted Users</h3>
+                  <p className="pp-muted">Minimum 5 approved documents required.</p>
+                </div>
               </div>
               <div className="hd-lb-list">
-                {leaderboard.length ? leaderboard.map((item, i) => (
-                  <div key={item.userId} className="hd-lb-row">
-                    <span className={`hd-lb-rank ${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}`}>#{i + 1}</span>
-                    <div className="hd-lb-avatar">{(item.name || "U").split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</div>
-                    <div className="hd-lb-info">
-                      <strong>{item.name}</strong>
-                      <p className="pp-muted">{item.approvedDocsCount} approved docs · helped {item.helpedRequestsCount} requests</p>
+                {leaderboard.length ? (
+                  leaderboard.map((item, i) => (
+                    <div key={item.userId} className="hd-lb-row">
+                      <span className={`hd-lb-rank ${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}`}>
+                        #{i + 1}
+                      </span>
+                      <div className="hd-lb-avatar">
+                        {(item.name || "U")
+                          .split(" ")
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      <div className="hd-lb-info">
+                        <strong>{item.name}</strong>
+                        <p className="pp-muted">
+                          {item.approvedDocsCount} approved docs - helped {item.helpedRequestsCount} requests
+                        </p>
+                      </div>
+                      <span className="hd-lb-points">{item.points} pts</span>
                     </div>
-                    <span className="hd-lb-points">{item.points} pts</span>
-                  </div>
-                )) : <p className="pp-muted">No trusted users yet.</p>}
+                  ))
+                ) : (
+                  <p className="pp-muted">No trusted users yet.</p>
+                )}
               </div>
             </div>
           </div>
         ) : null}
 
+        {confirmAction ? (
+          <div className="confirm-overlay">
+            <div className="confirm-modal">
+              <h3 className="confirm-title">
+                {confirmAction.type === "all"
+                  ? "Clear All Received Notes"
+                  : confirmAction.type === "selected"
+                    ? "Clear Selected Notes"
+                    : confirmAction.type === "delete"
+                      ? "Delete Request"
+                      : "Clear Note"}
+              </h3>
+              <p className="confirm-msg">
+                {confirmAction.type === "all"
+                  ? "This will clear all received notes from your dashboard only."
+                  : confirmAction.type === "selected"
+                    ? `This will clear ${selectedRequestIds.length} selected received note(s) from your dashboard only.`
+                    : confirmAction.type === "delete"
+                      ? "This will permanently delete the request you posted."
+                      : "This received note will be cleared from your dashboard only."}
+              </p>
+              <div className="confirm-actions">
+                <button type="button" className="confirm-cancel" onClick={() => setConfirmAction(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="confirm-delete"
+                  onClick={() => {
+                    if (confirmAction.type === "all") {
+                      onClearAllOwnRequests();
+                      return;
+                    }
+                    if (confirmAction.type === "selected") {
+                      onClearSelectedRequests();
+                      return;
+                    }
+                    if (confirmAction.type === "delete") {
+                      onDelete(confirmAction.requestId);
+                      setConfirmAction(null);
+                      return;
+                    }
+                    onClearForMe(confirmAction.requestId);
+                    setConfirmAction(null);
+                  }}
+                >
+                  {confirmAction.type === "delete" ? "Delete Request" : "Clear"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </main>
     </div>
   );
