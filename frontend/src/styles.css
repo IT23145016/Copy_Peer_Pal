@@ -7374,6 +7374,7 @@ body.theme-dark .quickadd-footer {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
   padding-top: 0.5rem;
   border-top: 1px solid rgba(245,128,37,0.08);
 }
@@ -7383,6 +7384,7 @@ body.theme-dark .quickadd-footer {
   align-items: center;
   gap: 0.35rem;
   flex: 1;
+  min-width: 0;
   padding: 0.45rem 0.75rem;
   border-radius: 10px;
   border: 1px dashed rgba(245,128,37,0.25);
@@ -7398,6 +7400,7 @@ body.theme-dark .quickadd-footer {
 
 .hd-upload-btn {
   padding: 0.45rem 0.85rem;
+  flex-shrink: 0;
   border-radius: 10px;
   border: none;
   background: linear-gradient(135deg, #f58025, #d7641a);
@@ -7405,6 +7408,21 @@ body.theme-dark .quickadd-footer {
   font-weight: 700;
   font-size: 0.82rem;
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .hd-upload-row {
+    flex-wrap: wrap;
+  }
+
+  .hd-file-label,
+  .hd-upload-btn {
+    width: 100%;
+  }
+
+  .hd-upload-btn {
+    justify-content: center;
+  }
 }
 
 .hd-doc-list { display: grid; gap: 0.4rem; }
