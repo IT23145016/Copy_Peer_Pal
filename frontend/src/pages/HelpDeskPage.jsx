@@ -524,7 +524,9 @@ export default function HelpDeskPage() {
                       <div className="hd-doc-list">
                         {item.documents.map((doc) => (
                           <div key={doc._id} className="hd-doc-row">
-                            <span className="hd-doc-name">{doc.fileName}</span>
+                            <div className="hd-doc-main">
+                              <span className="hd-doc-name">{doc.fileName}</span>
+                            </div>
                             <div className="hd-doc-actions">
                               <button type="button" className="hd-doc-btn" onClick={() => openDataUrl(doc.fileData)}>
                                 Open

@@ -6,6 +6,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import AboutPage from "./pages/AboutPage";
 import CalendarPage from "./pages/CalendarPage";
 import AppFooter from "./components/AppFooter";
+import SystemGuideChatbot from "./components/SystemGuideChatbot";
 import ContactPage from "./pages/ContactPage";
 import PublicNavbar from "./components/PublicNavbar";
 import DashboardPage from "./pages/DashboardPage";
@@ -133,6 +134,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <SystemGuideChatbot />
       <AppFooter />
     </>
   );
