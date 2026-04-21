@@ -3182,6 +3182,14 @@ button:disabled {
   background: #ea580c;
 }
 
+.dot.holiday {
+  background: #7c3aed;
+}
+
+.dot.campus {
+  background: #0ea5e9;
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -3292,6 +3300,18 @@ button:disabled {
   color: #c2410c;
 }
 
+.calendar-event.holiday {
+  border-left: 3px solid #7c3aed;
+  background: rgba(237, 233, 254, 0.9);
+  color: #6d28d9;
+}
+
+.calendar-event.campus {
+  border-left: 3px solid #0ea5e9;
+  background: rgba(224, 242, 254, 0.9);
+  color: #0284c7;
+}
+
 .calendar-day-agenda {
   padding: 1rem;
 }
@@ -3379,6 +3399,18 @@ button:disabled {
 .calendar-side-stack {
   display: grid;
   gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .calendar-side-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .calendar-side-card {
+    min-width: 0;
+  }
+
 }
 
 .upcoming-deadlines-card {
@@ -3505,20 +3537,46 @@ button:disabled {
   position: fixed;
   inset: 0;
   background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(3px);
-  z-index: 60;
+  z-index: 2147483646;
   display: grid;
   place-items: center;
   padding: 1rem;
 }
 
+.calendar-admin-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.calendar-admin-card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .calendar-admin-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .calendar-admin-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .quickadd-modal {
-  width: min(760px, 100%);
+  width: min(560px, calc(100vw - 2rem));
   background: #fff;
   border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.28);
   overflow: hidden;
+  position: relative;
+  z-index: 2147483647;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
 }
 
 .quickadd-header {
@@ -3681,6 +3739,42 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+body.theme-dark .quickadd-header {
+  background: #1a1e26 !important;
+  border-bottom-color: #2e3448 !important;
+}
+
+body.theme-dark .quickadd-title-wrap h3 {
+  color: #f1f5f9 !important;
+}
+
+body.theme-dark .quickadd-title-wrap p {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .quickadd-title-icon {
+  background: rgba(30, 64, 175, 0.22) !important;
+  color: #93c5fd !important;
+}
+
+body.theme-dark .quickadd-close {
+  color: #cbd5e1 !important;
+}
+
+body.theme-dark .quickadd-cancel {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+body.theme-dark .quickadd-save {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+  color: #fff !important;
+}
+
+body.theme-dark .quickadd-footer {
+  border-top-color: #374151 !important;
 }
 
 .toast {
@@ -6550,6 +6644,26 @@ button:disabled {
   background: rgba(239,68,68,0.14);
 }
 
+.calendar-study-delete-btn {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  margin-top: 0;
+  padding: 0;
+  border-radius: 9px;
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  flex: 0 0 auto;
+  font-size: 0;
+  line-height: 1;
+}
+
+.calendar-study-delete-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
 /* Confirm delete modal */
 .confirm-overlay {
   position: fixed;
@@ -8776,6 +8890,9 @@ body.theme-dark .aa-delete-btn:hover {
 .adm-stat-soft .adm-stat-label { color: rgba(255,255,255,0.75) !important; }
 .adm-stat-soft .adm-stat-num   { color: #fff !important; }
 .adm-stat-soft .adm-stat-icon  { background: rgba(255,255,255,0.15) !important; color: #fff !important; }
+.adm-stat-card .pp-muted {
+  color: rgba(255,255,255,0.84) !important;
+}
 
 .adm-stat-green {
   background: linear-gradient(135deg, #1a3a6b, #122a52) !important;
@@ -9234,6 +9351,18 @@ body.theme-dark .calendar-event.assignment {
   border-left-color: #ea580c !important;
   background: rgba(30, 30, 45, 0.85) !important;
   color: #c2410c !important;
+}
+
+body.theme-dark .calendar-event.holiday {
+  border-left-color: #8b5cf6 !important;
+  background: rgba(91, 33, 182, 0.18) !important;
+  color: #c4b5fd !important;
+}
+
+body.theme-dark .calendar-event.campus {
+  border-left-color: #38bdf8 !important;
+  background: rgba(8, 47, 73, 0.75) !important;
+  color: #7dd3fc !important;
 }
 
 /* -- Fix priority button active states -- */

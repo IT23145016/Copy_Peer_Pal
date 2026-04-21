@@ -16,8 +16,19 @@ const calendarEventSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["personal", "study", "assignment"],
+      enum: ["personal", "study", "assignment", "campus"],
       default: "study",
+    },
+    audienceScopeType: {
+      type: String,
+      enum: ["all", "semester", "year"],
+      default: "all",
+    },
+    audienceScopeValue: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 20,
     },
     date: {
       type: String,
