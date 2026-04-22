@@ -7,6 +7,7 @@ import AboutPage from "./pages/AboutPage";
 import CalendarPage from "./pages/CalendarPage";
 import AppFooter from "./components/AppFooter";
 import SystemGuideChatbot from "./components/SystemGuideChatbot";
+import SeasonalOverlay from "./components/SeasonalOverlay";
 import ContactPage from "./pages/ContactPage";
 import PublicNavbar from "./components/PublicNavbar";
 import DashboardPage from "./pages/DashboardPage";
@@ -40,6 +41,7 @@ export default function App() {
 
   return (
     <>
+      <SeasonalOverlay />
       <div className="app-navbar-wrap">
         <div className="app-navbar-shell">
           <PublicNavbar theme={theme} onToggleTheme={() => setTheme((current) => (current === "light" ? "dark" : "light"))} />

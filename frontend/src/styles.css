@@ -7608,6 +7608,81 @@ body.theme-dark .quickadd-footer {
   fill: currentColor;
 }
 
+.seasonal-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+.seasonal-flake,
+.seasonal-bat {
+  position: absolute;
+  top: -8vh;
+  will-change: transform;
+}
+
+.seasonal-flake {
+  color: rgba(96, 165, 250, 0.72);
+  font-size: 1.35rem;
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.65),
+    0 0 16px rgba(147, 197, 253, 0.55);
+  animation: seasonal-snowfall linear infinite;
+}
+
+.seasonal-bat {
+  color: rgba(46, 27, 13, 0.72);
+  animation: seasonal-bat-flight linear infinite;
+}
+
+.seasonal-bat svg {
+  width: 2.1rem;
+  height: auto;
+  display: block;
+  fill: currentColor;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
+}
+
+body.theme-dark .seasonal-flake {
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.75),
+    0 0 18px rgba(191, 219, 254, 0.45);
+}
+
+body.theme-dark .seasonal-bat {
+  color: rgba(251, 191, 36, 0.52);
+}
+
+@keyframes seasonal-snowfall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(1.8rem, 112vh, 0) rotate(220deg);
+  }
+}
+
+@keyframes seasonal-bat-flight {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(1.2rem, 18vh, 0);
+  }
+  50% {
+    transform: translate3d(-0.8rem, 38vh, 0);
+  }
+  75% {
+    transform: translate3d(1.4rem, 70vh, 0);
+  }
+  100% {
+    transform: translate3d(-0.6rem, 110vh, 0);
+  }
+}
+
 .hd-approve-btn { background: rgba(22,163,74,0.08); color: #15803d; border-color: rgba(22,163,74,0.2); }
 
 .hd-approved-chip {
