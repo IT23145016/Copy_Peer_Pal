@@ -7893,6 +7893,32 @@ body.theme-dark .ss-admin-filter-label {
   border: 1px solid rgba(245,128,37,0.2);
 }
 
+.ss-session-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.58rem 0.82rem;
+  border-radius: 10px;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  background: rgba(254, 242, 242, 0.92);
+  color: #b91c1c;
+  font-size: 0.81rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.ss-session-cancel-btn:hover {
+  background: rgba(254, 226, 226, 0.98);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #991b1b;
+  transform: translateY(-1px);
+}
+
+.ss-session-cancel-btn:active {
+  transform: translateY(0);
+}
+
 .ss-two-col {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -11291,4 +11317,16 @@ body.theme-dark .hd-clear-action-danger {
   background: rgba(239,68,68,0.12);
   border-color: rgba(239,68,68,0.35);
   color: #f87171;
+}
+
+body.theme-dark .ss-session-cancel-btn {
+  background: rgba(127, 29, 29, 0.26);
+  border-color: rgba(248, 113, 113, 0.28);
+  color: #fecaca;
+}
+
+body.theme-dark .ss-session-cancel-btn:hover {
+  background: rgba(153, 27, 27, 0.34);
+  border-color: rgba(252, 165, 165, 0.38);
+  color: #fee2e2;
 }
