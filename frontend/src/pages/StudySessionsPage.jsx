@@ -58,7 +58,7 @@ export default function StudySessionsPage() {
             <h1 className="hd-title">Study Sessions</h1>
             <p className="pp-muted">{studySessions.length} upcoming · {proposals.length} proposals</p>
           </div>
-          <div className="s-header-actions">
+          <div className="ss-header-actions">
             <Link to="/study-sessions/propose" className="ss-action-btn ss-btn-outline">
               <Plus size={15} /> Propose
             </Link>

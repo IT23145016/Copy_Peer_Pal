@@ -9,7 +9,7 @@ export default function StudySessionsProposePage() {
   const [profile, setProfile] = useState(null);
   const [modules, setModules] = useState([]);
   const [draft, setDraft] = useState({ moduleId: "", description: "", date: "", startTime: "", endTime: "" });
-  const [error, setError] = useState("");
+  const [error, setError] = seState("");
   const [status, setStatus] = useState("");
   const navigate = useNavigate();
   const auth = getStoredAuth();
