@@ -6,8 +6,10 @@ import {
   ChevronRight,
   ClipboardList,
   Clock3,
+  Pencil,
   Plus,
   Trash2,
+  X,
   Zap,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -77,16 +79,21 @@ const groupEventsByDate = (items) =>
     if (!acc[item.date]) acc[item.date] = [];
     acc[item.date].push({
       id: item._id || item.id,
+      date: item.date,
       title: item.title,
       type: item.type,
       time: item.time,
       endTime: item.endTime || "",
       sourceLabel: item.sourceLabel || "",
-      sourceType: item.sourceType || "",
+      sourceType: item.sourceType || item.source || "",
       group: item.group || "",
+      editable: !!item.editable,
       participantsCount: item.participantsCount ?? 0,
       deletable: !!item.deletable,
+      editRef: item.editRef || null,
       deleteRef: item.deleteRef || null,
+      moduleId: item.moduleId || "",
+      description: item.description || "",
       scopeLabel: item.scopeLabel || "",
       audienceScopeType: item.audienceScopeType || "",
       audienceScopeValue: item.audienceScopeValue || "",
@@ -124,6 +131,23 @@ const parseClockTime = (value) => {
   return null;
 };
 
+const convertTo24Hour = (time12h) => {
+  if (!time12h || typeof time12h !== "string") return "10:00";
+  const text = time12h.trim().toUpperCase();
+  const ampmMatch = text.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = ampmMatch[2];
+    const meridiem = ampmMatch[3];
+    if (hour === 12) hour = 0;
+    if (meridiem === "PM") hour += 12;
+    return `${String(hour).padStart(2, "0")}:${minute}`;
+  }
+  const twentyFourMatch = text.match(/^(\d{1,2}):(\d{2})$/);
+  if (twentyFourMatch) return text;
+  return "10:00";
+};
+
 const initialQuickAddForm = (activeDate) => ({
   title: "",
   type: "study",
@@ -143,6 +167,9 @@ const initialCampusEventForm = (activeDate) => ({
   endTime: "11:00",
   scopeType: "all",
   scopeValue: "",
+  scopeBatch: "",
+  scopeYear: "",
+  scopeSemester: "",
   notes: "",
 });
 
@@ -158,6 +185,8 @@ export default function CalendarPage() {
   const [adminOverview, setAdminOverview] = useState({ summary: null, events: [], batchOptions: [], filters: null });
   const [adminFilters, setAdminFilters] = useState({
     batch: "",
+    year: "",
+    semester: "",
     eventType: "all",
     from: "",
     to: "",
@@ -167,9 +196,13 @@ export default function CalendarPage() {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState(() => initialQuickAddForm(today));
   const [quickAddError, setQuickAddError] = useState("");
+  const [editingQuickAdd, setEditingQuickAdd] = useState(null);
   const [isCampusEventOpen, setIsCampusEventOpen] = useState(false);
   const [campusEventForm, setCampusEventForm] = useState(() => initialCampusEventForm(today));
   const [campusEventError, setCampusEventError] = useState("");
+  const [editingCampusEvent, setEditingCampusEvent] = useState(null);
+  const [confirmDeleteCampus, setConfirmDeleteCampus] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const onLogout = () => {
     clearStoredAuth();
@@ -200,6 +233,8 @@ export default function CalendarPage() {
       setError("");
       const params = new URLSearchParams();
       if (filters.batch) params.set("batch", filters.batch);
+      if (filters.year) params.set("year", filters.year);
+      if (filters.semester) params.set("semester", filters.semester);
       if (filters.eventType && filters.eventType !== "all") params.set("eventType", filters.eventType);
       const bounds = monthBounds(viewDate);
       const from = filters.from ? (filters.from > bounds.start ? filters.from : bounds.start) : bounds.start;
@@ -226,7 +261,7 @@ export default function CalendarPage() {
     }
     loadEvents();
     loadModules();
-  }, [isAdmin, activeDate, adminFilters.batch, adminFilters.eventType, adminFilters.from, adminFilters.to]);
+  }, [isAdmin, activeDate, adminFilters.batch, adminFilters.year, adminFilters.semester, adminFilters.eventType, adminFilters.from, adminFilters.to]);
 
   const weekDates = useMemo(() => {
     const start = startOfWeek(activeDate);
@@ -368,6 +403,7 @@ export default function CalendarPage() {
 
   const onQuickAdd = async () => {
     setQuickAddError("");
+    setEditingQuickAdd(null);
     const defaults = initialQuickAddForm(activeDate);
     if (modules.length > 0) defaults.moduleId = modules[0]._id;
     setQuickAddForm(defaults);
@@ -377,6 +413,24 @@ export default function CalendarPage() {
   const closeQuickAdd = () => {
     setIsQuickAddOpen(false);
     setQuickAddError("");
+    setEditingQuickAdd(null);
+  };
+
+  const openEditQuickAdd = (event) => {
+    setQuickAddError("");
+    setEditingQuickAdd(event);
+    setQuickAddForm({
+      title: event.sourceType === "proposed_session" ? (event.description || event.title) : event.title,
+      type: event.sourceType === "proposed_session" ? "study" : (event.type === "personal" ? "personal" : "study"),
+      moduleId: event.moduleId || "",
+      date: event.date,
+      venue: event.venue || "",
+      startTime: convertTo24Hour(event.time),
+      endTime: convertTo24Hour(event.endTime || "15:00"),
+      notes: event.notes || event.description || "",
+    });
+    setSelectedDay(null);
+    setIsQuickAddOpen(true);
   };
 
   const onAdminFilterChange = (field, value) => {
@@ -384,18 +438,55 @@ export default function CalendarPage() {
   };
 
   const onCampusEventFieldChange = (field, value) => {
-    setCampusEventForm((prev) => ({ ...prev, [field]: value }));
+    setCampusEventForm((prev) => {
+      if (field === "scopeType") {
+        return {
+          ...prev,
+          scopeType: value,
+          scopeValue: value === "all" ? "" : prev.scopeValue,
+          scopeBatch: value === "batch" ? prev.scopeBatch : "",
+          scopeYear: value === "batch" ? prev.scopeYear : "",
+          scopeSemester: value === "batch" ? prev.scopeSemester : "",
+        };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const openCampusEventModal = () => {
     setCampusEventError("");
+    setEditingCampusEvent(null);
     setCampusEventForm(initialCampusEventForm(activeDate));
     setIsCampusEventOpen(true);
+  };
+
+  const openEditCampusEventModal = (item) => {
+    setCampusEventError("");
+    setEditingCampusEvent(item);
+    const [scopeBatch = "", scopeYear = "", scopeSemester = ""] = String(item.audienceScopeValue || "").split("-");
+    setCampusEventForm({
+      title: item.title,
+      date: item.date,
+      venue: item.venue || "",
+      startTime: convertTo24Hour(item.time) || "10:00",
+      endTime: convertTo24Hour(item.endTime) || "11:00",
+      scopeType: item.audienceScopeType || "all",
+      scopeValue: item.audienceScopeValue || "",
+      scopeBatch: item.audienceScopeType === "batch" ? scopeBatch : "",
+      scopeYear: item.audienceScopeType === "batch" ? scopeYear : "",
+      scopeSemester: item.audienceScopeType === "batch" ? scopeSemester : "",
+      notes: item.notes || "",
+    });
+    setIsCampusEventOpen(true);
+    setTimeout(() => {
+      document.querySelector(".calendar-campus-form-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   const closeCampusEventModal = () => {
     setIsCampusEventOpen(false);
     setCampusEventError("");
+    setEditingCampusEvent(null);
   };
 
   const adminCalendarEvents = useMemo(
@@ -440,40 +531,24 @@ export default function CalendarPage() {
 
   const submitCampusEvent = async (e) => {
     e.preventDefault();
-    if (!campusEventForm.title.trim()) {
-      setCampusEventError("Campus event title is required");
-      return;
-    }
-    if (!campusEventForm.date) {
-      setCampusEventError("Campus event date is required");
-      return;
-    }
-    const todayStr = dateKey(new Date());
-    if (campusEventForm.date < todayStr) {
-      setCampusEventError("Event date cannot be in the past");
-      return;
-    }
-    if (!campusEventForm.startTime) {
-      setCampusEventError("Start time is required");
-      return;
-    }
-    if (!campusEventForm.endTime) {
-      setCampusEventError("End time is required");
-      return;
-    }
-    if (campusTimeRangeError) {
-      setCampusEventError(campusTimeRangeError);
-      return;
-    }
-    if (campusEventForm.scopeType === "batch" && !campusEventForm.scopeValue.trim()) {
-      setCampusEventError("Please enter a batch");
+    if (!campusEventForm.title.trim()) { setCampusEventError("Campus event title is required"); return; }
+    if (!campusEventForm.date) { setCampusEventError("Campus event date is required"); return; }
+    if (!editingCampusEvent && campusEventForm.date < dateKey(new Date())) { setCampusEventError("Event date cannot be in the past"); return; }
+    if (!campusEventForm.startTime) { setCampusEventError("Start time is required"); return; }
+    if (!campusEventForm.endTime) { setCampusEventError("End time is required"); return; }
+    if (campusTimeRangeError) { setCampusEventError(campusTimeRangeError); return; }
+    if (campusEventForm.scopeType === "batch" && (!campusEventForm.scopeBatch || !campusEventForm.scopeYear || !campusEventForm.scopeSemester)) {
+      setCampusEventError("Please select batch, year and semester");
       return;
     }
 
     try {
       setCampusEventError("");
       setError("");
-      await api.post("/calendar-events", {
+      const scopeValue = campusEventForm.scopeType === "batch"
+        ? `${campusEventForm.scopeBatch}-${campusEventForm.scopeYear}-${campusEventForm.scopeSemester}`
+        : campusEventForm.scopeValue;
+      const payload = {
         title: campusEventForm.title.trim(),
         type: "campus",
         date: campusEventForm.date,
@@ -482,13 +557,33 @@ export default function CalendarPage() {
         venue: campusEventForm.venue.trim(),
         notes: campusEventForm.notes.trim(),
         scopeType: campusEventForm.scopeType,
-        scopeValue: campusEventForm.scopeValue,
-      });
-      setStatus("Campus event added");
+        scopeValue,
+      };
+      if (editingCampusEvent) {
+        await api.put(`/calendar-events/campus/${editingCampusEvent.id}`, payload);
+        setStatus("Campus event updated");
+      } else {
+        await api.post("/calendar-events", payload);
+        setStatus("Campus event added");
+      }
       setIsCampusEventOpen(false);
+      setEditingCampusEvent(null);
       await loadAdminOverview(adminFilters, activeDate);
     } catch (err) {
       setCampusEventError(err.response?.data?.message || "Failed to save campus event");
+    }
+  };
+
+  const handleDeleteCampusEvent = async (item) => {
+    try {
+      setError("");
+      await api.delete(`/calendar-events/campus/${item.id}`);
+      setStatus("Campus event deleted");
+      setConfirmDeleteCampus(null);
+      await loadAdminOverview(adminFilters, activeDate);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete campus event");
+      setConfirmDeleteCampus(null);
     }
   };
 
@@ -545,11 +640,12 @@ export default function CalendarPage() {
           </div>
 
           {error ? <p className="error">{error}</p> : null}
+          {status ? <p className="success">{status}</p> : null}
 
           <div className="adm-dashboard">
             <div className="aa-view-topbar" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
-                <p className="pp-muted">Filter by batch, event source and date range.</p>
+                <p className="pp-muted">Filter by batch, year, semester, event source and date range.</p>
               </div>
               <div className="usr-filter-row" style={{ flexWrap: "wrap" }}>
                 <select value={adminFilters.batch} onChange={(e) => onAdminFilterChange("batch", e.target.value)}>
@@ -560,6 +656,19 @@ export default function CalendarPage() {
                     </option>
                   ))}
                 </select>
+                <select value={adminFilters.year} onChange={(e) => onAdminFilterChange("year", e.target.value)}>
+                  <option value="">All Years</option>
+                  {[1, 2, 3, 4].map((year) => (
+                    <option key={year} value={year}>
+                      Year {year}
+                    </option>
+                  ))}
+                </select>
+                <select value={adminFilters.semester} onChange={(e) => onAdminFilterChange("semester", e.target.value)}>
+                  <option value="">All Semesters</option>
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
+                </select>
                 <select value={adminFilters.eventType} onChange={(e) => onAdminFilterChange("eventType", e.target.value)}>
                   {Object.entries(eventTypeLabels).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -569,7 +678,7 @@ export default function CalendarPage() {
                 </select>
                 <input type="date" value={adminFilters.from} onChange={(e) => onAdminFilterChange("from", e.target.value)} />
                 <input type="date" value={adminFilters.to} onChange={(e) => onAdminFilterChange("to", e.target.value)} />
-                <button type="button" className="aa-edit-btn" style={{ padding: "0.5rem 1rem" }} onClick={() => setAdminFilters({ batch: "", eventType: "all", from: "", to: "" })}>
+                <button type="button" className="aa-edit-btn" style={{ padding: "0.5rem 1rem" }} onClick={() => setAdminFilters({ batch: "", year: "", semester: "", eventType: "all", from: "", to: "" })}>
                   Reset
                 </button>
               </div>
@@ -607,11 +716,13 @@ export default function CalendarPage() {
               isOpen={isCampusEventOpen}
               inline
               form={campusEventForm}
+              batchOptions={adminOverview.batchOptions || []}
               error={campusEventError}
               timeRangeError={campusTimeRangeError}
               onClose={closeCampusEventModal}
               onFieldChange={onCampusEventFieldChange}
               onSubmit={submitCampusEvent}
+              editMode={!!editingCampusEvent}
             />
 
             <div className="calendar-admin-stack" style={{ marginTop: "0.5rem" }}>
@@ -632,7 +743,7 @@ export default function CalendarPage() {
                       const key = dateKey(date);
                       const events = adminEventsByDate[key] || [];
                       return (
-                        <div key={key} className={`calendar-day-cell${inMonth ? "" : " muted"}${key === todayKey ? " current-day-cell" : ""}`}>
+                        <div key={key} className={`calendar-day-cell${inMonth ? "" : " muted"}${key === todayKey ? " current-day-cell" : ""}`} style={{ cursor: "pointer" }} onClick={() => setSelectedDay({ key, date, events })}>
                           {isSameDate(date, today) ? <span className="day-badge">{String(date.getDate()).padStart(2, "0")}</span> : <span className="day-number">{String(date.getDate()).padStart(2, "0")}</span>}
                           {events.slice(0, 2).map((event) => (
                             <div key={`${event.id}-${event.time}`} className={`calendar-event ${event.type}`} title={event.sourceLabel}>
@@ -709,6 +820,10 @@ export default function CalendarPage() {
                             {item.scopeLabel || "All Students"}
                           </p>
                         </div>
+                        <div style={{ display: "flex", gap: "0.35rem" }}>
+                          <button type="button" className="aa-edit-btn" style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }} onClick={() => openEditCampusEventModal(item)} title="Edit campus event">Edit</button>
+                          <button type="button" className="aa-delete-btn calendar-study-delete-btn" onClick={() => setConfirmDeleteCampus(item)} title="Delete campus event"><Trash2 size={12} /></button>
+                        </div>
                       </article>
                     )) : <p className="pp-muted">No campus events in the selected month.</p>}
                   </div>
@@ -735,6 +850,59 @@ export default function CalendarPage() {
               </div>
             </div>
           </div>
+          {confirmDeleteCampus ? (
+            <div className="confirm-overlay">
+              <div className="confirm-modal">
+                <h3 className="confirm-title">Delete Campus Event</h3>
+                <p className="confirm-msg">Are you sure you want to delete <strong>"{confirmDeleteCampus.title}"</strong>? This cannot be undone.</p>
+                <div className="confirm-actions">
+                  <button type="button" className="confirm-cancel" onClick={() => setConfirmDeleteCampus(null)}>Cancel</button>
+                  <button type="button" className="confirm-delete" onClick={() => handleDeleteCampusEvent(confirmDeleteCampus)}>Yes, Delete</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {selectedDay ? (
+            <div className="confirm-overlay" onClick={() => setSelectedDay(null)}>
+              <div className="confirm-modal" style={{ maxWidth: "480px", width: "90%" }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                  <h3 className="confirm-title" style={{ margin: 0 }}>
+                    {fullDayFormatter.format(selectedDay.date)}
+                  </h3>
+                  <button type="button" className="quickadd-close" onClick={() => setSelectedDay(null)}><X size={18} /></button>
+                </div>
+                {selectedDay.events.length ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "360px", overflowY: "auto" }}>
+                    {selectedDay.events.map((event) => (
+                      <article key={`${event.id}-${event.time}`} className="deadline-item" style={{ alignItems: "flex-start" }}>
+                        <div className={`calendar-event ${event.type}`} style={{ minWidth: "8px", width: "8px", height: "8px", borderRadius: "50%", marginTop: "6px", padding: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ fontSize: "0.9rem" }}>{event.title}</strong>
+                          <p style={{ margin: "0.1rem 0 0", fontSize: "0.78rem", color: "var(--pp-muted, #6b7280)" }}>
+                            {event.time}{event.endTime ? ` – ${event.endTime}` : ""}
+                            {event.venue ? ` · ${event.venue}` : ""}
+                          </p>
+                          {event.sourceLabel ? <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", opacity: 0.7 }}>{event.sourceLabel}</p> : null}
+                          {event.notes ? <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem" }}>{event.notes}</p> : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="pp-muted">No events on this day.</p>
+                )}
+                <div style={{ marginTop: "1rem", borderTop: "1px solid var(--pp-border, #e5e7eb)", paddingTop: "0.75rem" }}>
+                  <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--pp-muted, #6b7280)", margin: "0 0 0.5rem" }}>ADD TO THIS DAY</p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <button type="button" className="aa-add-btn" style={{ fontSize: "0.78rem", padding: "0.35rem 0.75rem" }} onClick={() => { setSelectedDay(null); const d = initialQuickAddForm(selectedDay.date); d.type = "assignment"; if (modules.length > 0) d.moduleId = modules[0]._id; setQuickAddForm(d); setQuickAddError(""); setIsQuickAddOpen(true); }}>+ Assignment Deadline</button>
+                    <button type="button" className="aa-add-btn" style={{ fontSize: "0.78rem", padding: "0.35rem 0.75rem" }} onClick={() => { setSelectedDay(null); const d = initialQuickAddForm(selectedDay.date); d.type = "study"; if (modules.length > 0) d.moduleId = modules[0]._id; setQuickAddForm(d); setQuickAddError(""); setIsQuickAddOpen(true); }}>+ Study Room</button>
+                    <button type="button" className="aa-add-btn" style={{ fontSize: "0.78rem", padding: "0.35rem 0.75rem" }} onClick={() => { setSelectedDay(null); setCampusEventError(""); setEditingCampusEvent(null); setCampusEventForm({ ...initialCampusEventForm(selectedDay.date) }); setIsCampusEventOpen(true); setTimeout(() => { document.querySelector(".calendar-campus-form-card")?.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); }}>+ Campus Event</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </main>
       </div>
     );
@@ -767,7 +935,7 @@ export default function CalendarPage() {
       setQuickAddError("");
       setError("");
       setStatus("");
-      await api.post("/calendar-events", {
+      const payload = {
         title: quickAddForm.title.trim(),
         type: quickAddForm.type,
         moduleId: quickAddForm.moduleId,
@@ -776,12 +944,32 @@ export default function CalendarPage() {
         endTime: quickAddForm.endTime,
         venue: quickAddForm.venue.trim(),
         notes: quickAddForm.notes.trim(),
-      });
-      setStatus("Event added");
-      setIsQuickAddOpen(false);
+      };
+      if (editingQuickAdd?.editRef) {
+        await api.put(`/calendar-events/quick-add/${editingQuickAdd.editRef.kind}/${editingQuickAdd.editRef.id}`, payload);
+        setStatus("Quick add updated");
+      } else {
+        await api.post("/calendar-events", payload);
+        setStatus("Event added");
+      }
+      closeQuickAdd();
       await loadEvents();
     } catch (err) {
       setQuickAddError(err.response?.data?.message || "Failed to save entry");
+    }
+  };
+
+  const handleDeleteQuickAdd = async (event) => {
+    if (!event?.deleteRef) return;
+    try {
+      setError("");
+      setStatus("");
+      await api.delete(`/calendar-events/quick-add/${event.deleteRef.kind}/${event.deleteRef.id}`);
+      setSelectedDay(null);
+      setStatus("Quick add deleted");
+      await loadEvents();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete quick add");
     }
   };
 
@@ -838,6 +1026,7 @@ export default function CalendarPage() {
                     <span><i className="dot study" />Study</span>
                     <span><i className="dot assignment" />Assignments</span>
                     <span><i className="dot holiday" />Holidays</span>
+                    <span><i className="dot campus" />Campus Events</span>
                   </div>
                 </div>
 
@@ -865,7 +1054,7 @@ export default function CalendarPage() {
                       const key = dateKey(date);
                       const events = eventsByDate[key] || [];
                       return (
-                        <div key={key} className={`calendar-day-cell${focusDays.has(key)?" focus-day":""}${key===todayKey?" current-day-cell":""}` }>
+                        <div key={key} style={{ cursor: "pointer" }} className={`calendar-day-cell${focusDays.has(key)?" focus-day":""}${key===todayKey?" current-day-cell":""}` } onClick={() => setSelectedDay({ key, date, events })}>
                           {isSameDate(date,today) ? <span className="day-badge">{String(date.getDate()).padStart(2,"0")}</span> : <span className="day-number">{String(date.getDate()).padStart(2,"0")}</span>}
                           {focusDays.has(key) ? <p className="focus-tag">Focus Day</p> : null}
                           {events.map((event) => <div key={`${event.id}-${event.time}`} className={`calendar-event ${event.type}`}>{event.title}</div>)}
@@ -882,7 +1071,7 @@ export default function CalendarPage() {
                       const key = dateKey(date);
                       const events = eventsByDate[key] || [];
                       return (
-                        <div key={key} className={`calendar-day-cell${inMonth?"":" muted"}${focusDays.has(key)?" focus-day":""}${key===todayKey?" current-day-cell":""}` }>
+                        <div key={key} style={{ cursor: "pointer" }} className={`calendar-day-cell${inMonth?"":" muted"}${focusDays.has(key)?" focus-day":""}${key===todayKey?" current-day-cell":""}` } onClick={() => setSelectedDay({ key, date, events })}>
                           {isSameDate(date,today) ? <span className="day-badge">{String(date.getDate()).padStart(2,"0")}</span> : <span className="day-number">{String(date.getDate()).padStart(2,"0")}</span>}
                           {events.slice(0,2).map((event) => <div key={`${event.id}-${event.time}`} className={`calendar-event ${event.type}`}>{event.title}</div>)}
                           {events.length > 2 ? <div className="calendar-more-events">+{events.length-2} more</div> : null}
@@ -959,7 +1148,74 @@ export default function CalendarPage() {
           onClose={closeQuickAdd}
           onFieldChange={onQuickAddFieldChange}
           onSubmit={submitQuickAdd}
+          editMode={!!editingQuickAdd}
         />
+
+        {selectedDay ? (
+          <div className="confirm-overlay" onClick={() => setSelectedDay(null)}>
+            <div className="confirm-modal" style={{ maxWidth: "480px", width: "90%" }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <h3 className="confirm-title" style={{ margin: 0 }}>
+                  {fullDayFormatter.format(selectedDay.date)}
+                </h3>
+                <button type="button" className="quickadd-close" onClick={() => setSelectedDay(null)}><X size={18} /></button>
+              </div>
+              {selectedDay.events.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "360px", overflowY: "auto" }}>
+                  {selectedDay.events.map((event) => (
+                    <article key={`${event.id}-${event.time}`} className="deadline-item" style={{ alignItems: "flex-start" }}>
+                      <div className={`calendar-event ${event.type}`} style={{ minWidth: "8px", width: "8px", height: "8px", borderRadius: "50%", marginTop: "6px", padding: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: "0.9rem" }}>{event.title}</strong>
+                        <p style={{ margin: "0.1rem 0 0", fontSize: "0.78rem", color: "var(--pp-muted, #6b7280)" }}>
+                          {event.time}{event.endTime ? ` – ${event.endTime}` : ""}
+                          {event.venue ? ` · ${event.venue}` : ""}
+                        </p>
+                        {event.sourceLabel ? <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", opacity: 0.7 }}>{event.sourceLabel}</p> : null}
+                        {event.notes ? <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem" }}>{event.notes}</p> : null}
+                        {event.description && !event.notes ? <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem" }}>{event.description}</p> : null}
+                        {event.editable || event.deletable ? (
+                          <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.45rem", flexWrap: "wrap" }}>
+                            {event.editable ? (
+                              <button
+                                type="button"
+                                className="aa-edit-btn"
+                                style={{ padding: "0.3rem 0.15rem", fontSize: "0.45rem" }}
+                                onClick={() => openEditQuickAdd(event)}
+                                title="Edit quick add"
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            ) : null}
+                            {event.deletable ? (
+                              <button
+                                type="button"
+                                className="aa-delete-btn"
+                                style={{ padding: "0.3rem 0.15rem", fontSize: "0.45rem" }}
+                                onClick={() => handleDeleteQuickAdd(event)}
+                                title="Delete quick add"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="pp-muted">No events on this day.</p>
+              )}
+              <div style={{ marginTop: "1rem", borderTop: "1px solid var(--pp-border, #e5e7eb)", paddingTop: "0.75rem" }}>
+                <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--pp-muted, #6b7280)", margin: "0 0 0.5rem" }}>ADD TO THIS DAY</p>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button type="button" className="aa-add-btn" style={{ fontSize: "0.78rem", padding: "0.35rem 0.75rem" }} onClick={() => { setSelectedDay(null); setEditingQuickAdd(null); const d = initialQuickAddForm(selectedDay.date); d.type = "study"; if (modules.length > 0) d.moduleId = modules[0]._id; setQuickAddForm(d); setQuickAddError(""); setIsQuickAddOpen(true); }}>+ Quick Add</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
       </main>
     </div>

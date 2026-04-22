@@ -43,6 +43,7 @@ export default function AddCalendarEvent({
   onClose,
   onFieldChange,
   onSubmit,
+  editMode,
 }) {
   if (!isOpen) return null;
 
@@ -55,8 +56,8 @@ export default function AddCalendarEvent({
               <ClipboardList size={18} />
             </div>
             <div>
-              <h3>Add Timetable Entry</h3>
-              <p>Create a new academic session or study block</p>
+              <h3>{editMode ? "Edit Timetable Entry" : "Add Timetable Entry"}</h3>
+              <p>{editMode ? "Update your quick add entry" : "Create a new academic session or study block"}</p>
             </div>
           </div>
           <button type="button" className="quickadd-close" onClick={onClose}>
@@ -179,7 +180,7 @@ export default function AddCalendarEvent({
             </button>
             <button type="submit" className="quickadd-save">
               <Save size={14} />
-              Save Entry
+              {editMode ? "Update Entry" : "Save Entry"}
             </button>
           </div>
         </form>

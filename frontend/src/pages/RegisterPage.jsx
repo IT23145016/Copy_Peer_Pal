@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
 
+const BATCH_OPTIONS = ["Malabe", "Kandy Uni", "Nothern Uni"];
+
 export default function RegisterPage() {
   const [form, setForm] = useState({
     name: "",
@@ -122,7 +124,12 @@ export default function RegisterPage() {
                   </div>
                   <div className="login-field">
                     <label htmlFor="reg-batch">Batch</label>
-                    <input id="reg-batch" name="batch" value={form.batch} onChange={onChange} placeholder="2024-CS-A" />
+                    <select id="reg-batch" name="batch" value={form.batch} onChange={onChange}>
+                      <option value="">Select batch</option>
+                      {BATCH_OPTIONS.map((batch) => (
+                        <option key={batch} value={batch}>{batch}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
