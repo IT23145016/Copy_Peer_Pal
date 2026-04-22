@@ -58,7 +58,17 @@ const toDateTime = (date, time) => {
 
 const normalizeText = (value) => (typeof value === "string" ? value.trim() : "");
 
+const parseBatchScope = (scopeValue) => {
+  const [batch = "", year = "", semester = ""] = String(scopeValue || "").split("-");
+  return { batch, year, semester };
+};
+
 const getCampusScopeLabel = (scopeType, scopeValue) => {
+  if (scopeType === "batch" && scopeValue) {
+    const { batch, year, semester } = parseBatchScope(scopeValue);
+    if (batch && year && semester) return `${batch} - Year ${year} - Semester ${semester}`;
+    return `Batch ${scopeValue}`;
+  }
   if (scopeType === "semester" && scopeValue) return `Semester ${scopeValue}`;
   if (scopeType === "year" && scopeValue) return `Year ${scopeValue}`;
   return "All Students";
@@ -67,6 +77,14 @@ const getCampusScopeLabel = (scopeType, scopeValue) => {
 const isCampusEventVisibleToUser = (event, user) => {
   if (!event) return false;
   if (event.audienceScopeType === "all" || !event.audienceScopeType) return true;
+  if (event.audienceScopeType === "batch") {
+    const { batch, year, semester } = parseBatchScope(event.audienceScopeValue || "");
+    return (
+      String(user?.batch || "") === String(batch) &&
+      String(user?.academicYear || "") === String(year) &&
+      String(user?.semester || "") === String(semester)
+    );
+  }
   if (event.audienceScopeType === "year") {
     return String(user?.academicYear || "") === String(event.audienceScopeValue || "");
   }
@@ -108,26 +126,31 @@ const getWeekRange = () => {
   return { start: toDateOnly(start), end: toDateOnly(end) };
 };
 
-const buildBatchContext = async (batch) => {
-  if (!batch) return { batchUsers: [], academicPairs: [], userIds: [] };
-  const batchUsers = await User.find({
+const buildAudienceContext = async ({ batch, year, semester }) => {
+  if (!batch && !year && !semester) return { users: [], academicPairs: [], userIds: [], hasFilters: false };
+
+  const userFilter = {
     role: "user",
-    batch,
     isActive: { $ne: false },
-  })
+  };
+  if (batch) userFilter.batch = batch;
+  if (year) userFilter.academicYear = Number(year);
+  if (semester) userFilter.semester = Number(semester);
+
+  const users = await User.find(userFilter)
     .select("_id academicYear semester batch")
     .lean();
 
-  const userIds = batchUsers.map((user) => user._id);
+  const userIds = users.map((user) => user._id);
   const academicPairs = Array.from(
     new Set(
-      batchUsers
+      users
         .filter((user) => user.academicYear && user.semester)
         .map((user) => `${user.academicYear}-${user.semester}`)
     )
   );
 
-  return { batchUsers, academicPairs, userIds };
+  return { users, academicPairs, userIds, hasFilters: true };
 };
 
 const buildBatchFilterFromPairs = (academicPairs) => {
@@ -143,14 +166,59 @@ const buildBatchFilterFromPairs = (academicPairs) => {
   };
 };
 
+const buildCampusAudienceFilter = ({ batch, year, semester, academicPairs, audienceUsers, hasFilters }) => {
+  const filter = { type: "campus" };
+
+  if (!hasFilters) return filter;
+
+  const orConditions = [
+    { audienceScopeType: { $in: ["all", null] } },
+    { audienceScopeType: { $exists: false } },
+  ];
+
+  if (batch || year || semester) {
+    academicPairs.forEach((pair) => {
+      audienceUsers
+        .filter((user) => {
+          if (batch && String(user.batch || "") !== String(batch)) return false;
+          const [pairYear, pairSemester] = pair.split("-");
+          return String(user.academicYear || "") === String(pairYear) && String(user.semester || "") === String(pairSemester);
+        })
+        .forEach((user) => {
+          orConditions.push({
+            audienceScopeType: "batch",
+            audienceScopeValue: `${user.batch}-${user.academicYear}-${user.semester}`,
+          });
+        });
+    });
+  }
+  if (year) {
+    orConditions.push({ audienceScopeType: "year", audienceScopeValue: String(year) });
+  }
+  if (semester) {
+    orConditions.push({ audienceScopeType: "semester", audienceScopeValue: String(semester) });
+  }
+
+  academicPairs.forEach((pair) => {
+    const [academicYear, semester] = pair.split("-");
+    orConditions.push({ audienceScopeType: "year", audienceScopeValue: String(academicYear) });
+    orConditions.push({ audienceScopeType: "semester", audienceScopeValue: String(semester) });
+  });
+
+  filter.$or = orConditions;
+  return filter;
+};
+
 const buildCalendarOverview = async (req) => {
   const batch = normalizeText(req.query.batch);
+  const year = normalizeText(req.query.year);
+  const semester = normalizeText(req.query.semester);
   const requestedEventType = normalizeText(req.query.eventType) || "all";
   const allowedEventTypes = new Set(["all", "assignment", "study_room", "timetable", "holiday", "campus"]);
   const eventType = allowedEventTypes.has(requestedEventType) ? requestedEventType : "all";
   const from = normalizeText(req.query.from);
   const to = normalizeText(req.query.to);
-  const { batchUsers, academicPairs, userIds } = await buildBatchContext(batch);
+  const { users: audienceUsers, academicPairs, userIds, hasFilters: hasAudienceFilters } = await buildAudienceContext({ batch, year, semester });
   const weekRange = getWeekRange();
 
   const batchOptions = await User.distinct("batch", {
@@ -165,7 +233,12 @@ const buildCalendarOverview = async (req) => {
   const wantsCampus = eventType === "all" || eventType === "campus";
 
   const assignmentFilter = {};
-  if (batch) Object.assign(assignmentFilter, buildBatchFilterFromPairs(academicPairs));
+  if (batch) {
+    Object.assign(assignmentFilter, buildBatchFilterFromPairs(academicPairs));
+  } else {
+    if (year) assignmentFilter.academicYear = Number(year);
+    if (semester) assignmentFilter.semester = Number(semester);
+  }
   if (from || to) {
     assignmentFilter.deadline = {};
     if (from) assignmentFilter.deadline.$gte = new Date(`${from}T00:00:00.000Z`);
@@ -173,9 +246,9 @@ const buildCalendarOverview = async (req) => {
   }
 
   const studyCreatedFilter = {};
-  if (batch && userIds.length) {
+  if (hasAudienceFilters && userIds.length) {
     studyCreatedFilter.createdBy = { $in: userIds };
-  } else if (batch) {
+  } else if (hasAudienceFilters) {
     studyCreatedFilter._id = null;
   }
   studyCreatedFilter.linkedStudySession = null;
@@ -186,9 +259,9 @@ const buildCalendarOverview = async (req) => {
   }
 
   const studySessionFilter = {};
-  if (batch && userIds.length) {
+  if (hasAudienceFilters && userIds.length) {
     studySessionFilter.$or = [{ initiatedBy: { $in: userIds } }, { participants: { $in: userIds } }];
-  } else if (batch) {
+  } else if (hasAudienceFilters) {
     studySessionFilter._id = null;
   }
   if (from || to) {
@@ -198,9 +271,9 @@ const buildCalendarOverview = async (req) => {
   }
 
   const timetableFilter = {};
-  if (batch && userIds.length) {
+  if (hasAudienceFilters && userIds.length) {
     timetableFilter.userId = { $in: userIds };
-  } else if (batch) {
+  } else if (hasAudienceFilters) {
     timetableFilter._id = null;
   }
   timetableFilter.type = { $ne: "campus" };
@@ -210,12 +283,19 @@ const buildCalendarOverview = async (req) => {
     if (to) timetableFilter.date.$lte = to;
   }
 
+  const campusFilter = buildCampusAudienceFilter({ batch, year, semester, academicPairs, audienceUsers, hasFilters: hasAudienceFilters });
+  if (from || to) {
+    campusFilter.date = {};
+    if (from) campusFilter.date.$gte = from;
+    if (to) campusFilter.date.$lte = to;
+  }
+
   const [assignments, studyCreatedSessions, studySessions, timetableEvents, campusEvents] = await Promise.all([
     wantsAssignments ? Assignment.find(assignmentFilter).sort({ deadline: 1, createdAt: -1 }).lean() : Promise.resolve([]),
     wantsStudyRooms ? ProposedSession.find(studyCreatedFilter).sort({ date: 1, startTime: 1, createdAt: -1 }).lean() : Promise.resolve([]),
     wantsStudyRooms ? StudySession.find(studySessionFilter).sort({ date: 1, startTime: 1, createdAt: -1 }).lean() : Promise.resolve([]),
     wantsTimetable ? CalendarEvent.find(timetableFilter).sort({ date: 1, time: 1, createdAt: -1 }).lean() : Promise.resolve([]),
-    wantsCampus ? CalendarEvent.find({ type: "campus", ...(from || to ? { date: { ...(from ? { $gte: from } : {}), ...(to ? { $lte: to } : {}) } } : {}) }).sort({ date: 1, time: 1, createdAt: -1 }).lean() : Promise.resolve([]),
+    wantsCampus ? CalendarEvent.find(campusFilter).sort({ date: 1, time: 1, createdAt: -1 }).lean() : Promise.resolve([]),
   ]);
 
   const holidayEvents = wantsHolidays ? getSriLankaHolidayEvents({ from, to }) : [];
@@ -308,7 +388,8 @@ const buildCalendarOverview = async (req) => {
       audienceScopeValue: item.audienceScopeValue || "",
       scopeLabel: getCampusScopeLabel(item.audienceScopeType || "all", item.audienceScopeValue || ""),
       participantsCount: 0,
-      deletable: false,
+      deletable: true,
+      editable: true,
     })),
     ...holidayEvents,
   ];
@@ -326,7 +407,7 @@ const buildCalendarOverview = async (req) => {
   );
 
   return {
-    filters: { batch, eventType, from, to },
+    filters: { batch, year, semester, eventType, from, to },
     batchOptions,
     summary: {
       totalAssignments: typeCounts.assignment,
@@ -340,7 +421,7 @@ const buildCalendarOverview = async (req) => {
       weekRange,
     },
     events: sortedEvents,
-    batchUsers,
+    batchUsers: audienceUsers,
   };
 };
 
@@ -449,6 +530,11 @@ const listCalendarEvents = async (req, res) => {
       moduleName: item.moduleName,
       description: item.description,
       status: item.status,
+      editable: String(item.createdBy) === String(req.user.userId),
+      deletable: String(item.createdBy) === String(req.user.userId),
+      editRef: { kind: "proposed", id: String(item._id) },
+      deleteRef: { kind: "proposed", id: String(item._id) },
+      moduleId: item.moduleRef ? String(item.moduleRef) : "",
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     }));
@@ -460,7 +546,14 @@ const listCalendarEvents = async (req, res) => {
     }).sort({ date: 1, time: 1, createdAt: -1 });
 
     const merged = [
-      ...manualEvents.map((item) => ({ ...item.toObject(), source: "manual" })),
+      ...manualEvents.map((item) => ({
+        ...item.toObject(),
+        source: "manual",
+        editable: true,
+        deletable: true,
+        editRef: { kind: "manual", id: String(item._id) },
+        deleteRef: { kind: "manual", id: String(item._id) },
+      })),
       ...assignmentEvents,
       ...proposedSessionEvents,
       ...holidayEvents,
@@ -488,7 +581,7 @@ const listCalendarEvents = async (req, res) => {
       return (a.sortTime || a.time || "00:00").localeCompare(b.sortTime || b.time || "00:00");
     });
 
-    const user = req.user.role === "admin" ? null : await User.findById(req.user.userId).select("academicYear semester").lean();
+    const user = req.user.role === "admin" ? null : await User.findById(req.user.userId).select("academicYear semester batch").lean();
     const visible = req.user.role === "admin"
       ? merged
       : merged.filter((item) => item.group !== "campus" || isCampusEventVisibleToUser(item, user));
@@ -541,22 +634,12 @@ const createCalendarEvent = async (req, res) => {
       if (req.user.role !== "admin") {
         return res.status(403).json({ message: "Only admins can create campus events" });
       }
-      if (!["all", "semester", "year"].includes(scopeType)) {
-        return res.status(400).json({ message: "scopeType must be all, semester or year" });
+      if (!["all", "batch", "semester", "year"].includes(scopeType)) {
+        return res.status(400).json({ message: "scopeType must be all, batch, semester or year" });
       }
       if (scopeType !== "all") {
         if (!scopeValue) {
-          return res.status(400).json({ message: "scopeValue is required for semester or year campus events" });
-        }
-        const numericScope = Number(scopeValue);
-        if (!Number.isInteger(numericScope)) {
-          return res.status(400).json({ message: "scopeValue must be a whole number" });
-        }
-        if (scopeType === "semester" && !(numericScope >= 1 && numericScope <= 2)) {
-          return res.status(400).json({ message: "semester scopeValue must be 1 or 2" });
-        }
-        if (scopeType === "year" && !(numericScope >= 1 && numericScope <= 6)) {
-          return res.status(400).json({ message: "year scopeValue must be between 1 and 6" });
+          return res.status(400).json({ message: "scopeValue is required for targeted campus events" });
         }
       }
 
@@ -645,9 +728,134 @@ const createCalendarEvent = async (req, res) => {
   }
 };
 
+const updateCampusEvent = async (req, res) => {
+  try {
+    const event = await CalendarEvent.findOne({ _id: req.params.id, type: "campus" });
+    if (!event) return res.status(404).json({ message: "Campus event not found" });
+
+    const title = typeof req.body.title === "string" ? req.body.title.trim() : event.title;
+    const date = typeof req.body.date === "string" ? req.body.date.trim() : event.date;
+    const time = typeof req.body.time === "string" ? req.body.time.trim() : event.time;
+    const endTime = typeof req.body.endTime === "string" ? req.body.endTime.trim() : event.endTime;
+    const venue = typeof req.body.venue === "string" ? req.body.venue.trim() : event.venue;
+    const notes = typeof req.body.notes === "string" ? req.body.notes.trim() : event.notes;
+    const scopeType = typeof req.body.scopeType === "string" ? req.body.scopeType.trim() : event.audienceScopeType;
+    const scopeValue = typeof req.body.scopeValue === "string" ? req.body.scopeValue.trim() : event.audienceScopeValue;
+
+    if (!title) return res.status(400).json({ message: "title is required" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ message: "date must be in YYYY-MM-DD format" });
+    if (parseClockTime(time) === null) return res.status(400).json({ message: "time must be a valid time" });
+    if (endTime && parseClockTime(endTime) === null) return res.status(400).json({ message: "endTime must be a valid time" });
+    if (endTime && parseClockTime(endTime) <= parseClockTime(time)) return res.status(400).json({ message: "endTime must be after time" });
+    if (![ "all", "batch", "semester", "year" ].includes(scopeType)) return res.status(400).json({ message: "scopeType must be all, batch, semester or year" });
+    if (scopeType !== "all" && !scopeValue) return res.status(400).json({ message: "scopeValue is required for targeted campus events" });
+
+    Object.assign(event, { title, date, time, endTime, venue, notes, audienceScopeType: scopeType, audienceScopeValue: scopeType === "all" ? "" : scopeValue });
+    await event.save();
+    return res.status(200).json({ message: "Campus event updated", event });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update campus event", error: error.message });
+  }
+};
+
+const deleteCampusEvent = async (req, res) => {
+  try {
+    const event = await CalendarEvent.findOne({ _id: req.params.id, type: "campus" });
+    if (!event) return res.status(404).json({ message: "Campus event not found" });
+    await CalendarEvent.deleteOne({ _id: req.params.id });
+    return res.status(200).json({ message: "Campus event deleted", deletedId: req.params.id });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete campus event", error: error.message });
+  }
+};
+
+const updateUserQuickAdd = async (req, res) => {
+  try {
+    const source = normalizeText(req.params.source);
+    const id = normalizeText(req.params.id);
+    const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
+    const date = typeof req.body.date === "string" ? req.body.date.trim() : "";
+    const time = typeof req.body.time === "string" ? req.body.time.trim() : "";
+    const endTime = typeof req.body.endTime === "string" ? req.body.endTime.trim() : "";
+    const venue = typeof req.body.venue === "string" ? req.body.venue.trim() : "";
+    const notes = typeof req.body.notes === "string" ? req.body.notes.trim() : "";
+    const moduleId = typeof req.body.moduleId === "string" ? req.body.moduleId.trim() : "";
+
+    if (!title || !date || !time) return res.status(400).json({ message: "title, date and time are required" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ message: "date must be in YYYY-MM-DD format" });
+    if (parseClockTime(time) === null) return res.status(400).json({ message: "time must be a valid time" });
+    if (endTime && parseClockTime(endTime) === null) return res.status(400).json({ message: "endTime must be a valid time" });
+    if (endTime && parseClockTime(endTime) <= parseClockTime(time)) return res.status(400).json({ message: "endTime must be after time" });
+
+    if (source === "manual") {
+      const event = await CalendarEvent.findOne({ _id: id, userId: req.user.userId, type: { $ne: "campus" } });
+      if (!event) return res.status(404).json({ message: "Quick add event not found" });
+      Object.assign(event, { title, date, time, endTime, venue, notes });
+      await event.save();
+      return res.status(200).json({ message: "Quick add updated", event, source });
+    }
+
+    if (source === "proposed") {
+      if (!moduleId) return res.status(400).json({ message: "moduleId is required for study session entries" });
+      if (!endTime) return res.status(400).json({ message: "endTime is required for study session entries" });
+
+      const session = await ProposedSession.findOne({ _id: id, createdBy: req.user.userId });
+      if (!session) return res.status(404).json({ message: "Quick add study session not found" });
+
+      const moduleItem = await Module.findById(moduleId);
+      if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+
+      Object.assign(session, {
+        moduleRef: moduleItem._id,
+        moduleCode: moduleItem.moduleCode,
+        moduleName: moduleItem.moduleName,
+        description: notes || title,
+        date,
+        startTime: time,
+        endTime,
+      });
+      await session.save();
+      return res.status(200).json({ message: "Quick add updated", event: session, source });
+    }
+
+    return res.status(400).json({ message: "source must be manual or proposed" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update quick add", error: error.message });
+  }
+};
+
+const deleteUserQuickAdd = async (req, res) => {
+  try {
+    const source = normalizeText(req.params.source);
+    const id = normalizeText(req.params.id);
+
+    if (source === "manual") {
+      const event = await CalendarEvent.findOne({ _id: id, userId: req.user.userId, type: { $ne: "campus" } });
+      if (!event) return res.status(404).json({ message: "Quick add event not found" });
+      await CalendarEvent.deleteOne({ _id: id });
+      return res.status(200).json({ message: "Quick add deleted", deletedId: id, source });
+    }
+
+    if (source === "proposed") {
+      const session = await ProposedSession.findOne({ _id: id, createdBy: req.user.userId });
+      if (!session) return res.status(404).json({ message: "Quick add study session not found" });
+      await ProposedSession.deleteOne({ _id: id });
+      return res.status(200).json({ message: "Quick add deleted", deletedId: id, source });
+    }
+
+    return res.status(400).json({ message: "source must be manual or proposed" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete quick add", error: error.message });
+  }
+};
+
 module.exports = {
   listCalendarEvents,
   createCalendarEvent,
   getCalendarAdminOverview,
   deleteAdminStudyRoomEvent,
+  updateCampusEvent,
+  deleteCampusEvent,
+  updateUserQuickAdd,
+  deleteUserQuickAdd,
 };

@@ -1,6 +1,6 @@
 import { CalendarCheck2, MapPin, Save, X } from "lucide-react";
 
-function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChange, onSubmit }) {
+function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChange, onSubmit, editMode, batchOptions = [] }) {
   return (
     <>
       <div className="quickadd-header">
@@ -9,7 +9,7 @@ function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChan
             <CalendarCheck2 size={18} />
           </div>
           <div>
-            <h3>Add Campus Event</h3>
+            <h3>{editMode ? "Edit Campus Event" : "Add Campus Event"}</h3>
             <p>Create an event for one semester, one year, or all students</p>
           </div>
         </div>
@@ -75,15 +75,51 @@ function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChan
           </div>
 
           {form.scopeType === "batch" ? (
+            <>
+              <div className="quickadd-field quickadd-field-full">
+                <label>Batch</label>
+                <select value={form.scopeBatch} onChange={(e) => onFieldChange("scopeBatch", e.target.value)} required>
+                  <option value="">Select Batch</option>
+                  {batchOptions.map((batch) => (
+                    <option key={batch} value={batch}>
+                      {batch}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="quickadd-field">
+                <label>Year</label>
+                <select value={form.scopeYear} onChange={(e) => onFieldChange("scopeYear", e.target.value)} required>
+                  <option value="">Select Year</option>
+                  {[1, 2, 3, 4, 5, 6].map((year) => (
+                    <option key={year} value={year}>
+                      Year {year}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="quickadd-field">
+                <label>Semester</label>
+                <select value={form.scopeSemester} onChange={(e) => onFieldChange("scopeSemester", e.target.value)} required>
+                  <option value="">Select Semester</option>
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
+                </select>
+              </div>
+            </>
+          ) : null}
+
+          {form.scopeType !== "batch" && form.scopeType !== "all" ? (
             <div className="quickadd-field quickadd-field-full">
-              <label>Batch</label>
-              <input
-                type="text"
-                placeholder="e.g. 2022, 2023"
-                value={form.scopeValue}
-                onChange={(e) => onFieldChange("scopeValue", e.target.value)}
-                required
-              />
+              <label>Scope Value</label>
+              <select value={form.scopeValue} onChange={(e) => onFieldChange("scopeValue", e.target.value)} required>
+                <option value="">Select Value</option>
+                {[1, 2, 3, 4, 5, 6].map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
             </div>
           ) : null}
 
@@ -106,7 +142,7 @@ function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChan
           </button>
           <button type="submit" className="quickadd-save">
             <Save size={14} />
-            Save Campus Event
+            {editMode ? "Update Campus Event" : "Save Campus Event"}
           </button>
         </div>
       </form>
@@ -117,11 +153,13 @@ function CampusEventFormBody({ form, error, timeRangeError, onClose, onFieldChan
 export default function AddCampusEvent({
   isOpen,
   form,
+  batchOptions = [],
   error,
   timeRangeError,
   onClose,
   onFieldChange,
   onSubmit,
+  editMode,
 }) {
   if (!isOpen) return null;
 
@@ -129,11 +167,13 @@ export default function AddCampusEvent({
     <section className="pp-card calendar-campus-form-card" style={{ marginTop: "0.75rem", overflow: "hidden" }}>
       <CampusEventFormBody
         form={form}
+        batchOptions={batchOptions}
         error={error}
         timeRangeError={timeRangeError}
         onClose={onClose}
         onFieldChange={onFieldChange}
         onSubmit={onSubmit}
+        editMode={editMode}
       />
     </section>
   );

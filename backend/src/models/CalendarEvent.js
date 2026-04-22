@@ -21,7 +21,7 @@ const calendarEventSchema = new mongoose.Schema(
     },
     audienceScopeType: {
       type: String,
-      enum: ["all", "semester", "year"],
+      enum: ["all", "batch", "semester", "year"],
       default: "all",
     },
     audienceScopeValue: {

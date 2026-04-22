@@ -3171,7 +3171,7 @@ button:disabled {
 }
 
 .dot.personal {
-  background: #2563eb;
+  background: #ca8a04;
 }
 
 .dot.study {
@@ -3283,9 +3283,9 @@ button:disabled {
 }
 
 .calendar-event.personal {
-  border-left: 3px solid #2563eb;
-  background: rgba(219, 234, 254, 0.8);
-  color: #1d4ed8;
+  border-left: 3px solid #ca8a04;
+  background: rgba(254, 249, 195, 0.8);
+  color: #a16207;
 }
 
 .calendar-event.study {
@@ -3403,7 +3403,7 @@ button:disabled {
 
 @media (min-width: 1100px) {
   .calendar-side-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }
 
@@ -3746,6 +3746,17 @@ body.theme-dark .quickadd-header {
   border-bottom-color: #2e3448 !important;
 }
 
+body.theme-dark .quickadd-modal {
+  background: #111827 !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  box-shadow: 0 24px 50px rgba(2, 6, 23, 0.55) !important;
+}
+
+body.theme-dark .quickadd-body {
+  background: #111827 !important;
+  color: #e5eefc !important;
+}
+
 body.theme-dark .quickadd-title-wrap h3 {
   color: #f1f5f9 !important;
 }
@@ -3757,6 +3768,35 @@ body.theme-dark .quickadd-title-wrap p {
 body.theme-dark .quickadd-title-icon {
   background: rgba(30, 64, 175, 0.22) !important;
   color: #93c5fd !important;
+}
+
+body.theme-dark .quickadd-field label {
+  color: #cbd5e1 !important;
+}
+
+body.theme-dark .quickadd-input-icon svg {
+  color: #94a3b8 !important;
+}
+
+body.theme-dark .quickadd-warning {
+  background: rgba(120, 53, 15, 0.28) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #fde68a !important;
+}
+
+body.theme-dark .quickadd-warning p,
+body.theme-dark .quickadd-warning strong {
+  color: inherit !important;
+}
+
+body.theme-dark .quickadd-field .input-error {
+  background: rgba(127, 29, 29, 0.35) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: #fecaca !important;
+}
+
+body.theme-dark .quickadd-inline-error {
+  color: #fca5a5 !important;
 }
 
 body.theme-dark .quickadd-close {
@@ -8755,6 +8795,7 @@ body.theme-dark .adm-student-info strong { color: #f1f5f9 !important; }
 body.theme-dark .adm-student-info span   { color: #94a3b8 !important; }
 body.theme-dark .adm-stat-num      { color: #f1f5f9 !important; }
 body.theme-dark .adm-stat-label    { color: #cbd5e1 !important; }
+body.theme-dark .adm-stat-card .pp-muted { color: #c6d4ea !important; }
 body.theme-dark .adm-section-head h3 { color: #f1f5f9 !important; }
 body.theme-dark .adm-see-all       { color: var(--pp-accent) !important; }
 
@@ -9336,9 +9377,9 @@ body.theme-dark .focus-highlight-icon {
 
 /* -- Dark mode: calendar event type bars -- */
 body.theme-dark .calendar-event.personal {
-  border-left-color: #3b82f6 !important;
-  background: rgba(59, 130, 246, 0.2) !important;
-  color: #93c5fd !important;
+  border-left-color: #ca8a04 !important;
+  background: rgba(113, 63, 18, 0.45) !important;
+  color: #fde68a !important;
 }
 
 body.theme-dark .calendar-event.study {
@@ -9627,6 +9668,10 @@ body.theme-dark .adm-dashboard .adm-section-head h3 {
 
 body.theme-dark .adm-dashboard .pp-muted {
   color: #64748b !important;
+}
+
+body.theme-dark .adm-dashboard .adm-stat-card .pp-muted {
+  color: rgba(255, 255, 255, 0.84) !important;
 }
 
 body.theme-dark .adm-dashboard .adm-see-all {
@@ -9932,7 +9977,10 @@ body.theme-dark .pp-layout {
 }
 
 body.theme-dark .pp-main {
-  background: transparent !important;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(96, 165, 250, 0.08), transparent 26%),
+    radial-gradient(circle at 88% 14%, rgba(56, 189, 248, 0.07), transparent 24%),
+    linear-gradient(180deg, #0b1220 0%, #101827 52%, #0f172a 100%) !important;
 }
 
 body.theme-dark .pp-welcome,
@@ -10034,6 +10082,19 @@ body.theme-dark .pp-nav-item {
   color: #c6d4ea !important;
 }
 
+body.theme-dark .confirm-cancel {
+  background: rgba(15, 23, 42, 0.72) !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  color: #dbeafe !important;
+}
+
+body.theme-dark .confirm-delete {
+  background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+  border: 1px solid rgba(248, 113, 113, 0.28) !important;
+  color: #fff5f5 !important;
+  box-shadow: 0 10px 22px rgba(127, 29, 29, 0.35) !important;
+}
+
 body.theme-dark .pp-focus-label,
 body.theme-dark .adm-focus-eyebrow,
 body.theme-dark .adm-overview-kicker,
@@ -10075,11 +10136,17 @@ body.theme-dark .ss-header .pp-muted,
 body.theme-dark .ss-section-title,
 body.theme-dark .ss-section-title svg,
 body.theme-dark .ss-header-actions .ss-action-btn,
-body.theme-dark .usr-filter-row,
-body.theme-dark .usr-filter-row label,
 body.theme-dark .pp-main > .error,
 body.theme-dark .pp-main > .success {
   color: #1f2f4a !important;
+}
+
+body.theme-dark .aa-view-topbar .pp-muted,
+body.theme-dark .hd-header .pp-muted,
+body.theme-dark .ss-header .pp-muted,
+body.theme-dark .usr-filter-row,
+body.theme-dark .usr-filter-row label {
+  color: #c6d4ea !important;
 }
 
 body.theme-dark .hd-tabs {
@@ -10104,22 +10171,23 @@ body.theme-dark .calendar-nav h3,
 body.theme-dark .calendar-nav .icon-action-btn,
 body.theme-dark .calendar-nav .icon-action-btn svg,
 body.theme-dark .calendar-view-toggle .calendar-view-btn {
-  color: #1f2f4a !important;
+  color: #e5eefc !important;
 }
 
 body.theme-dark .calendar-nav .icon-action-btn {
-  background: rgba(255, 255, 255, 0.68) !important;
-  border-color: rgba(31, 47, 74, 0.14) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
 }
 
 body.theme-dark .calendar-view-toggle {
-  background: rgba(255, 255, 255, 0.68) !important;
-  border-color: rgba(31, 47, 74, 0.14) !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
 }
 
 body.theme-dark .calendar-view-toggle .calendar-view-btn.active {
-  background: #ffffff !important;
-  color: #3f58d8 !important;
+  background: rgba(37, 99, 235, 0.22) !important;
+  color: #93c5fd !important;
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.28) !important;
 }
 
 body.theme-dark .aa-topbar .aa-title,
