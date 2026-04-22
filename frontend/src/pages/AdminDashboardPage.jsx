@@ -202,7 +202,6 @@ export default function AdminDashboardPage() {
     ...overdueAssignments.map((item) => ({ ...item, attentionType: "overdue" })),
     ...dueSoonAssignments.map((item) => ({ ...item, attentionType: "soon" })),
   ].slice(0, 3);
-
   return (
     <div className="pp-layout adm-page-shell">
       {toast.show ? (
@@ -302,7 +301,61 @@ export default function AdminDashboardPage() {
               </article>
             </section>
 
-            <section className="adm-focus-grid">
+            <section className="adm-overview-actions adm-overview-recent-grid">
+              <button type="button" className="adm-quick-action adm-quick-action-stack" onClick={() => navigate("/admin/dashboard?tab=assignments")}>
+                <ClipboardList size={18} />
+                <span className="adm-quick-action-copy">
+                  <strong>Recent Assignments</strong>
+                  {recentAssignments.length ? (
+                    <span className="adm-quick-action-list">
+                      {recentAssignments.map((item) => (
+                        <span key={item._id} className="adm-quick-action-item">
+                          {item.moduleCode} - {item.assignmentName}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <small>No assignments published yet</small>
+                  )}
+                </span>
+              </button>
+              <button type="button" className="adm-quick-action adm-quick-action-stack" onClick={() => navigate("/admin/dashboard?tab=modules")}>
+                <LibraryBig size={18} />
+                <span className="adm-quick-action-copy">
+                  <strong>Recent Modules</strong>
+                  {recentModules.length ? (
+                    <span className="adm-quick-action-list">
+                      {recentModules.map((item) => (
+                        <span key={item._id} className="adm-quick-action-item">
+                          {item.moduleCode} - {item.moduleName}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <small>No modules added yet</small>
+                  )}
+                </span>
+              </button>
+              <button type="button" className="adm-quick-action adm-quick-action-stack" onClick={() => navigate("/admin/dashboard?tab=users")}>
+                <Users size={18} />
+                <span className="adm-quick-action-copy">
+                  <strong>Recent Students</strong>
+                  {recentUsers.length ? (
+                    <span className="adm-quick-action-list">
+                      {recentUsers.map((item) => (
+                        <span key={item._id} className="adm-quick-action-item">
+                          {item.name} - Year {item.academicYear || "-"} Semester {item.semester || "-"}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    <small>No students registered yet</small>
+                  )}
+                </span>
+              </button>
+            </section>
+
+            <section className="adm-focus-grid" style={{ display: "none" }}>
               <article className="adm-focus-panel adm-focus-panel-priority">
                 <div className="adm-focus-head">
                   <div>
@@ -374,7 +427,7 @@ export default function AdminDashboardPage() {
               </article>
             </section>
 
-            <section className="adm-detail-grid">
+            <section className="adm-detail-grid" style={{ display: "none" }}>
               <article className="adm-focus-panel">
                 <div className="adm-focus-head">
                   <div>

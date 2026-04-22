@@ -41,67 +41,9 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
           aria-label="Toggle sidebar"
           style={{ position: "relative", right: "auto", bottom: "auto", marginLeft: "auto" }}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
       </div>
-
-      <nav className="pp-sidebar-nav">
-        <button type="button" className={`pp-nav-item ${isActive("/dashboard") || isActive("/admin/dashboard") ? "active" : ""}`} onClick={onHomeNavigate} title="Dashboard">
-          <LayoutDashboard size={18} />
-          {!collapsed && <span>Dashboard</span>}
-        </button>
-        {role === "user" ? (
-          <>
-            <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
-              <CircleHelp size={18} />
-              {!collapsed && <span>Help Desk</span>}
-            </Link>
-            <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
-              <CalendarDays size={18} />
-              {!collapsed && <span>Study Sessions</span>}
-            </Link>
-            <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
-              <CalendarDays size={18} />
-              {!collapsed && <span>Calendar</span>}
-            </Link>
-            <Link to="/dashboard?tab=modules" className={`pp-nav-item ${isActive("/dashboard", "modules") ? "active" : ""}`} title="Modules">
-              <BookOpenCheck size={18} />
-              {!collapsed && <span>Modules</span>}
-            </Link>
-            <Link to="/dashboard?tab=tracker" className={`pp-nav-item ${isActive("/dashboard", "tracker") ? "active" : ""}`} title="Assignment Tracker">
-              <BookOpenCheck size={18} />
-              {!collapsed && <span>Assignment Tracker</span>}
-            </Link>
-          </>
-        ) : (
-          <>
-            <Link to="/admin/dashboard?tab=assignments" className={`pp-nav-item ${isActive("/admin/dashboard", "assignments") ? "active" : ""}`} title="Assignments">
-              <BookOpenCheck size={18} />
-              {!collapsed && <span>Assignments</span>}
-            </Link>
-            <Link to="/admin/dashboard?tab=modules" className={`pp-nav-item ${isActive("/admin/dashboard", "modules") ? "active" : ""}`} title="Modules">
-              <BookOpenCheck size={18} />
-              {!collapsed && <span>Modules</span>}
-            </Link>
-            <Link to="/admin/dashboard?tab=users" className={`pp-nav-item ${isActive("/admin/dashboard", "users") ? "active" : ""}`} title="Users">
-              <UserRound size={18} />
-              {!collapsed && <span>Users</span>}
-            </Link>
-            <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
-              <CircleHelp size={18} />
-              {!collapsed && <span>Help Desk</span>}
-            </Link>
-            <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
-              <CalendarDays size={18} />
-              {!collapsed && <span>Study Sessions</span>}
-            </Link>
-            <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
-              <CalendarDays size={18} />
-              {!collapsed && <span>Calendar</span>}
-            </Link>
-          </>
-        )}
-      </nav>
 
       {!collapsed && (
         <div className="pp-sidebar-profile">
@@ -121,6 +63,64 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
           <img className="pp-avatar-img" src={avatarSrc} alt="Profile" />
         </div>
       )}
+
+      <nav className="pp-sidebar-nav">
+        <button type="button" className={`pp-nav-item ${isActive("/dashboard") || isActive("/admin/dashboard") ? "active" : ""}`} onClick={onHomeNavigate} title="Dashboard">
+          <LayoutDashboard size={21} />
+          {!collapsed && <span>Dashboard</span>}
+        </button>
+        {role === "user" ? (
+          <>
+            <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
+              <CircleHelp size={21} />
+              {!collapsed && <span>Help Desk</span>}
+            </Link>
+            <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
+              <CalendarDays size={21} />
+              {!collapsed && <span>Study Sessions</span>}
+            </Link>
+            <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
+              <CalendarDays size={21} />
+              {!collapsed && <span>Calendar</span>}
+            </Link>
+            <Link to="/dashboard?tab=modules" className={`pp-nav-item ${isActive("/dashboard", "modules") ? "active" : ""}`} title="Modules">
+              <BookOpenCheck size={21} />
+              {!collapsed && <span>Modules</span>}
+            </Link>
+            <Link to="/dashboard?tab=tracker" className={`pp-nav-item ${isActive("/dashboard", "tracker") ? "active" : ""}`} title="Assignment Tracker">
+              <BookOpenCheck size={21} />
+              {!collapsed && <span>Assignment Tracker</span>}
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link to="/admin/dashboard?tab=assignments" className={`pp-nav-item ${isActive("/admin/dashboard", "assignments") ? "active" : ""}`} title="Assignments">
+              <BookOpenCheck size={21} />
+              {!collapsed && <span>Assignments</span>}
+            </Link>
+            <Link to="/admin/dashboard?tab=modules" className={`pp-nav-item ${isActive("/admin/dashboard", "modules") ? "active" : ""}`} title="Modules">
+              <BookOpenCheck size={21} />
+              {!collapsed && <span>Modules</span>}
+            </Link>
+            <Link to="/admin/dashboard?tab=users" className={`pp-nav-item ${isActive("/admin/dashboard", "users") ? "active" : ""}`} title="Users">
+              <UserRound size={21} />
+              {!collapsed && <span>Users</span>}
+            </Link>
+            <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
+              <CircleHelp size={21} />
+              {!collapsed && <span>Help Desk</span>}
+            </Link>
+            <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
+              <CalendarDays size={21} />
+              {!collapsed && <span>Study Sessions</span>}
+            </Link>
+            <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
+              <CalendarDays size={21} />
+              {!collapsed && <span>Calendar</span>}
+            </Link>
+          </>
+        )}
+      </nav>
 
     </aside>
   );
