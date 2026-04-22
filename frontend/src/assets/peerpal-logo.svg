@@ -1,18 +1,22 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg width="520" height="160" viewBox="0 0 520 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <ellipse cx="88" cy="138" rx="54" ry="12" fill="#DDE5F1"/>
+  <path d="M58 38L98 24L154 44L146 50L150 62L98 78L52 62L56 50L46 46L58 38Z" fill="#25283C"/>
+  <path d="M98 24L154 44L98 60L42 44L98 24Z" fill="#31364F"/>
+  <path d="M57 48V80" stroke="#F4C84A" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="57" cy="73" r="8" fill="#F4C84A"/>
+  <path d="M57 80L49 112H65L57 80Z" fill="#F4C84A"/>
+  <path d="M39 89C39 61.938 60.938 40 88 40C115.062 40 137 61.938 137 89C137 104.487 129.809 118.294 118.583 127.275L123 147L104 135.5C98.969 136.811 93.689 137.5 88.25 137.5C61.043 137.5 39 115.457 39 88.25V89Z" fill="url(#bubble)"/>
+  <path d="M88 46C112.301 46 132 65.6995 132 90C132 104.117 125.33 116.676 114.956 124.733L118.532 140.706L103.746 131.758C98.8453 133.077 93.6927 133.75 88.3833 133.75C63.7836 133.75 43.75 113.716 43.75 89.1167C43.75 64.5169 63.7836 44.4833 88.3833 44.4833L88 46Z" fill="#5AB5F2"/>
+  <path d="M62 58C70 50 83 46 99 47.5C113 49 124 56 130 67" stroke="white" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+  <ellipse cx="73" cy="85" rx="5.5" ry="7.5" fill="#1D2233"/>
+  <ellipse cx="103" cy="85" rx="5.5" ry="7.5" fill="#1D2233"/>
+  <path d="M76 101C81 108 95 108 100 101" stroke="#1D2233" stroke-width="4.5" stroke-linecap="round"/>
+  <text x="158" y="111" font-family="Trebuchet MS, Segoe UI, Arial, sans-serif" font-size="86" font-weight="700" fill="#4D7FD3">Peer</text>
+  <text x="349" y="111" font-family="Trebuchet MS, Segoe UI, Arial, sans-serif" font-size="86" font-weight="700" fill="#8BC34A">Pal</text>
   <defs>
-    <linearGradient id="peerpalBg" x1="18" y1="14" x2="112" y2="116" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7FB2FF"/>
-      <stop offset="1" stop-color="#2C4E86"/>
-    </linearGradient>
-    <linearGradient id="peerpalAccent" x1="36" y1="28" x2="92" y2="88" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF7F0"/>
-      <stop offset="1" stop-color="#DCE9FF"/>
+    <linearGradient id="bubble" x1="88" y1="40" x2="88" y2="137.5" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7F1FF"/>
+      <stop offset="1" stop-color="#8ED0FF"/>
     </linearGradient>
   </defs>
-  <rect x="8" y="8" width="112" height="112" rx="32" fill="url(#peerpalBg)"/>
-  <path d="M39 31C39 26.5817 42.5817 23 47 23H67C83.5685 23 97 36.4315 97 53C97 69.5685 83.5685 83 67 83H61.5L46.5 95V83H47C42.5817 83 39 79.4183 39 75V31Z" fill="url(#peerpalAccent)"/>
-  <path d="M53 44H68.5C74.8513 44 80 49.1487 80 55.5C80 61.8513 74.8513 67 68.5 67H61V77L53 67H53C49.6863 67 47 64.3137 47 61V50C47 46.6863 49.6863 44 53 44Z" fill="#30588F"/>
-  <path d="M59 46.5V73" stroke="#F6FBFF" stroke-width="7" stroke-linecap="round"/>
-  <path d="M59 46.5H70C75.2467 46.5 79.5 50.7533 79.5 56C79.5 61.2467 75.2467 65.5 70 65.5H59" stroke="#F6FBFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="87" cy="39" r="7" fill="#FFB36B"/>
 </svg>
