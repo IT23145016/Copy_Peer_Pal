@@ -7711,6 +7711,27 @@ body.theme-dark .quickadd-footer {
 
 .ss-header-actions { display: flex; gap: 0.6rem; }
 
+.ss-admin-filter-row {
+  align-items: center;
+}
+
+.ss-admin-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ss-admin-filter-row select {
+  min-width: 10rem;
+}
+
+body.theme-dark .ss-admin-filter-label {
+  color: #94a3b8;
+}
+
 .ss-action-btn {
   display: inline-flex;
   align-items: center;
