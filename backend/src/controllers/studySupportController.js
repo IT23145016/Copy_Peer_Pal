@@ -9,6 +9,12 @@ const { sendProposalApprovedEmails } = require("../utils/mailer");
 const isBatchTopUser = (user) => !!user?.isBatchTop;
 const BATCH_TOP_SESSION_THRESHOLD = 1;
 const PROPOSAL_APPROVAL_THRESHOLD = 2;
+const getLocalDateString = (value = new Date()) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const listBatchTops = async (req, res) => {
   try {
@@ -182,7 +188,7 @@ const startBatchTopSession = async (req, res) => {
 
 const listBatchTopSessions = async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getLocalDateString();
     const items = await StudySession.find({
       date: { $gte: today },
     })
@@ -249,6 +255,41 @@ const createProposedSession = async (req, res) => {
     return res.status(201).json({ message: "Proposed session created", session: created });
   } catch (error) {
     return res.status(500).json({ message: "Failed to create proposed session", error: error.message });
+  }
+};
+
+const deleteProposedSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const proposal = await ProposedSession.findById(id).select("createdBy linkedStudySession status");
+    if (!proposal) return res.status(404).json({ message: "Proposed session not found" });
+
+    const isOwner = String(proposal.createdBy) === String(req.user.userId);
+    const isAdmin = req.user.role === "admin";
+    const isPending = proposal.status === "pending";
+
+    if (proposal.linkedStudySession) {
+      return res.status(400).json({ message: "This proposal already has a created study session. Cancel the study session first." });
+    }
+
+    if (isPending) {
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ message: "Only the proposal creator or an admin can delete this pending proposal" });
+      }
+    } else {
+      if (!isAdmin) {
+        return res.status(403).json({ message: "Only an admin can delete an approved proposal" });
+      }
+    }
+
+    await Promise.all([
+      ProposedSession.deleteOne({ _id: id }),
+      SessionVote.deleteMany({ sessionId: id }),
+    ]);
+
+    return res.status(200).json({ message: "Proposed session deleted" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete proposed session", error: error.message });
   }
 };
 
@@ -396,6 +437,7 @@ module.exports = {
   listBatchTopSessions,
   cancelStudySession,
   createProposedSession,
+  deleteProposedSession,
   listProposedSessions,
   voteProposedSession,
   setProposedSessionMeetingLink,
