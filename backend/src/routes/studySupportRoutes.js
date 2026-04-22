@@ -7,6 +7,7 @@ const {
   listBatchTops,
   cancelStudySession,
   createSessionFromProposal,
+  deleteProposedSession,
   listMyBatchTopRequests,
   listProposedSessions,
   setProposedSessionMeetingLink,
@@ -27,6 +28,7 @@ router.delete("/sessions/:id", auth, cancelStudySession);
 
 router.post("/proposals", auth, createProposedSession);
 router.get("/proposals", auth, listProposedSessions);
+router.delete("/proposals/:id", auth, deleteProposedSession);
 router.post("/proposals/:id/vote", auth, voteProposedSession);
 router.post("/proposals/:id/meeting-link", auth, setProposedSessionMeetingLink);
 router.post("/proposals/:id/create-session", auth, createSessionFromProposal);

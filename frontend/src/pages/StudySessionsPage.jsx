@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { CalendarDays, Clock3, ExternalLink, Plus, ThumbsDown, ThumbsUp, UsersRound } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, Clock3, ExternalLink, Funnel, Plus, ThumbsDown, ThumbsUp, Trash2, UsersRound, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -28,11 +28,19 @@ export default function StudySessionsPage() {
 
   const loadData = async () => {
     try {
-      const [meRes, sessRes, propRes] = await Promise.all([
-        api.get("/auth/me"), api.get("/study-support/sessions"), api.get("/study-support/proposals"),
+      const [meRes, modRes, sessRes, propRes] = await Promise.all([
+        api.get("/auth/me"),
+        api.get("/modules"),
+        api.get("/study-support/sessions"),
+        api.get("/study-support/proposals"),
       ]);
-      setProfile(meRes.data); setStudySessions(sessRes.data); setProposals(propRes.data);
-    } catch (err) { setError(err.response?.data?.message || "Failed to load"); }
+      setProfile(meRes.data);
+      setModules(modRes.data);
+      setStudySessions(sessRes.data);
+      setProposals(propRes.data);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to load");
+    }
   };
 
   useEffect(() => {
@@ -56,16 +64,65 @@ export default function StudySessionsPage() {
     }
   };
 
-  const onCreateSession = async (proposalId) => {
-    const link = meetingLinkDrafts[proposalId] || "";
-    if (!link.trim()) { setError("Meeting link is required"); return; }
+  const onCreateSession = async (proposal) => {
+    const link = meetingLinkDrafts[proposal._id] || "";
+    if (!link.trim()) {
+      setError("Meeting link is required");
+      return;
+    }
+
     try {
-      setError(""); setStatus("");
-      await api.post(`/study-support/proposals/${proposalId}/meeting-link`, { meetingLink: link });
+      setError("");
+      setStatus("");
+      await api.post(`/study-support/proposals/${proposal._id}/create-session`, {
+        date: proposal.date,
+        startTime: proposal.startTime,
+        endTime: proposal.endTime,
+        meetingLink: link,
+      });
       setStatus("Session created!");
-      setMeetingLinkDrafts((prev) => { const n = { ...prev }; delete n[proposalId]; return n; });
+      setMeetingLinkDrafts((prev) => {
+        const next = { ...prev };
+        delete next[proposal._id];
+        return next;
+      });
       await loadData();
-    } catch (err) { setError(err.response?.data?.message || "Failed to create session"); }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create session");
+    }
+  };
+
+  const onCancelSession = async (sessionId) => {
+    if (!window.confirm("Cancel this study session?")) return;
+
+    try {
+      setError("");
+      setStatus("");
+      await api.delete(`/study-support/sessions/${sessionId}`);
+      setStatus("Study session cancelled");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to cancel session");
+    }
+  };
+
+  const onDeleteProposal = async (proposalId) => {
+    if (!window.confirm("Delete this proposal?")) return;
+
+    try {
+      setError("");
+      setStatus("");
+      await api.delete(`/study-support/proposals/${proposalId}`);
+      setStatus("Proposal deleted");
+      setMeetingLinkDrafts((prev) => {
+        const next = { ...prev };
+        delete next[proposalId];
+        return next;
+      });
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete proposal");
+    }
   };
 
   const moduleMetaMap = useMemo(
@@ -146,16 +203,14 @@ export default function StudySessionsPage() {
             <p className="pp-muted">{subtitle}</p>
           </div>
 
-          {!isAdmin ? (
-            <div className="ss-header-actions">
-              <Link to="/study-sessions/propose" className="ss-action-btn ss-btn-outline">
-                <Plus size={15} /> Propose
-              </Link>
-              <Link to="/study-sessions/request" className="ss-action-btn ss-btn-primary">
-                <UsersRound size={15} /> Request Session
-              </Link>
-            </div>
-          ) : null}
+          <div className="ss-header-actions">
+            <Link to="/study-sessions/propose" className="ss-action-btn ss-btn-outline">
+              <Plus size={15} /> Propose
+            </Link>
+            <Link to="/study-sessions/request" className="ss-action-btn ss-btn-primary">
+              <UsersRound size={15} /> Request Session
+            </Link>
+          </div>
         </div>
 
         {isAdmin ? (
@@ -206,34 +261,58 @@ export default function StudySessionsPage() {
         {status ? <p className="success">{status}</p> : null}
 
         <div className="ss-single-col">
-
-          {/* Upcoming Sessions */}
           <h3 className="ss-section-title"><CalendarDays size={16} /> Upcoming Sessions</h3>
           <div className="ss-sessions-list">
-            {studySessions.length ? studySessions.map((item) => (
-              <div key={item._id} className="ss-session-card">
-                <div className="ss-session-top">
-                  <span className="hd-module-badge">{item.moduleCode}</span>
-                  <span className="ss-time-chip"><Clock3 size={12} /> {item.startTime}–{item.endTime}</span>
+            {filteredStudySessions.length ? filteredStudySessions.map((item) => {
+              const canCancelSession =
+                isAdmin ||
+                String(item.initiatedBy?._id || item.initiatedBy) === String(profile?._id);
+
+              return (
+                <div key={item._id} className="ss-session-card">
+                  <div className="ss-session-top">
+                    <span className="hd-module-badge">{item.moduleCode}</span>
+                    <span className="ss-time-chip"><Clock3 size={12} /> {item.startTime}-{item.endTime}</span>
+                  </div>
+                  <h4 className="ss-session-name">{item.moduleName}</h4>
+                  <p className="pp-muted ss-date">Date: {item.date}</p>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    {item.meetingLink ? (
+                      <a href={item.meetingLink} target="_blank" rel="noreferrer" className="ss-join-btn">
+                        <ExternalLink size={13} /> Join Meeting
+                      </a>
+                    ) : (
+                      <p className="pp-muted" style={{ fontSize: "0.78rem", margin: 0 }}>Link pending</p>
+                    )}
+                    {canCancelSession ? (
+                      <button
+                        type="button"
+                        className="ss-action-btn ss-btn-outline"
+                        style={{ padding: "0.6rem 0.9rem" }}
+                        onClick={() => onCancelSession(item._id)}
+                      >
+                        <X size={13} /> Cancel Session
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <h4 className="ss-session-name">{item.moduleName}</h4>
-                <p className="pp-muted ss-date">📅 {item.date}</p>
-                {item.meetingLink
-                  ? <a href={item.meetingLink} target="_blank" rel="noreferrer" className="ss-join-btn"><ExternalLink size={13} /> Join Meeting</a>
-                  : <p className="pp-muted" style={{ fontSize: "0.78rem" }}>Link pending</p>}
-              </div>
-            )) : (
+              );
+            }) : (
               <div className="ss-empty"><CalendarDays size={32} /><p>No upcoming sessions yet.</p></div>
             )}
           </div>
 
-          {/* Proposals */}
           <h3 className="ss-section-title" style={{ marginTop: "1rem" }}><Plus size={16} /> Proposals</h3>
           <div className="ss-sessions-list">
-            {proposals.length ? proposals.map((item) => {
+            {filteredProposals.length ? filteredProposals.map((item) => {
               const isOwner = String(item.createdBy?._id || item.createdBy) === String(profile?._id);
               const alreadyVoted = !!item.myVote;
               const canVote = !isOwner && !alreadyVoted;
+              const isPendingProposal = item.status === "pending";
+              const hasLinkedSession = !!item.linkedStudySession;
+              const canDeleteProposal =
+                !hasLinkedSession && (isAdmin || (isOwner && isPendingProposal));
+
               return (
                 <div key={item._id} className={`ss-proposal-card ${item.status === "approved" ? "ss-proposal-approved" : ""}`}>
                   <div className="ss-session-top">
@@ -241,7 +320,7 @@ export default function StudySessionsPage() {
                     <span className={`ss-status-chip ${item.status === "approved" ? "ss-chip-green" : "ss-chip-soft"}`}>{item.status}</span>
                   </div>
                   <p className="ss-proposal-desc">{item.description}</p>
-                  <p className="pp-muted" style={{ fontSize: "0.78rem" }}>📅 {item.date} · {item.startTime}–{item.endTime}</p>
+                  <p className="pp-muted" style={{ fontSize: "0.78rem" }}>Date: {item.date} · {item.startTime}-{item.endTime}</p>
                   <div className="ss-vote-row">
                     <button
                       type="button"
@@ -264,6 +343,23 @@ export default function StudySessionsPage() {
                     {isOwner && <span className="pp-muted" style={{ fontSize: "0.74rem" }}>Your proposal</span>}
                     {!isOwner && alreadyVoted && <span className="pp-muted" style={{ fontSize: "0.74rem" }}>Voted ✓</span>}
                   </div>
+                  {canDeleteProposal ? (
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="ss-action-btn ss-btn-outline"
+                        style={{ padding: "0.55rem 0.9rem" }}
+                        onClick={() => onDeleteProposal(item._id)}
+                      >
+                        <Trash2 size={13} /> Delete Proposal
+                      </button>
+                    </div>
+                  ) : null}
+                  {!canDeleteProposal && hasLinkedSession ? (
+                    <p className="pp-muted" style={{ fontSize: "0.74rem", marginTop: "0.5rem" }}>
+                      This proposal already has a created session. Cancel the session first.
+                    </p>
+                  ) : null}
                   {item.canCreateSession && isOwner ? (
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                       <input
@@ -272,7 +368,7 @@ export default function StudySessionsPage() {
                         onChange={(e) => setMeetingLinkDrafts((prev) => ({ ...prev, [item._id]: e.target.value }))}
                         style={{ flex: 1, fontSize: "0.85rem", padding: "0.5rem 0.7rem", borderRadius: "10px", border: "1px solid #e2e8f0" }}
                       />
-                      <button type="button" className="ss-join-btn" onClick={() => onCreateSession(item._id)}>Create Session</button>
+                      <button type="button" className="ss-join-btn" onClick={() => onCreateSession(item)}>Create Session</button>
                     </div>
                   ) : null}
                 </div>
@@ -281,7 +377,6 @@ export default function StudySessionsPage() {
               <div className="ss-empty"><Plus size={32} /><p>No proposals yet.</p></div>
             )}
           </div>
-
         </div>
       </main>
     </div>
