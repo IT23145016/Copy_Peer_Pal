@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Moon, SunMedium, UserRound } from "lucide-react";
+import { Moon, SunMedium } from "lucide-react";
 import { clearStoredAuth, getDashboardPathByRole, getStoredAuth } from "../utils/auth";
 import peerPalLogo from "../assets/peerpal-logo.svg";
 
@@ -10,8 +10,6 @@ export default function PublicNavbar({ theme = "light", onToggleTheme }) {
   const role = auth?.user?.role || null;
   const isLoggedIn = Boolean(auth?.token);
   const dashboardPath = getDashboardPathByRole(role || "user");
-  const accountPath = isLoggedIn ? "/profile" : "/login";
-
   const navLinks = [
     { label: "Home", to: "/" },
     { label: "Features", href: "/#features" },
@@ -72,14 +70,6 @@ export default function PublicNavbar({ theme = "light", onToggleTheme }) {
         )}
         <Link className="btn btn-primary student-cta" to="/register">
           Signup
-        </Link>
-        <Link
-          className={`student-account-link ${isActive(accountPath) ? "is-active" : ""}`}
-          to={accountPath}
-          aria-label={isLoggedIn ? "My account" : "Login to my account"}
-          title={isLoggedIn ? auth?.user?.name || "My Account" : "My Account"}
-        >
-          <UserRound size={18} />
         </Link>
       </div>
     </header>
