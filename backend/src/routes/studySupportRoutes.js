@@ -5,6 +5,7 @@ const {
   listBatchTopPendingGroups,
   listBatchTopSessions,
   listBatchTops,
+  cancelStudySession,
   createSessionFromProposal,
   listMyBatchTopRequests,
   listProposedSessions,
@@ -22,6 +23,7 @@ router.get("/requests/my", auth, listMyBatchTopRequests);
 router.get("/batch-top/pending-groups", auth, listBatchTopPendingGroups);
 router.post("/sessions/start", auth, startBatchTopSession);
 router.get("/sessions", auth, listBatchTopSessions);
+router.delete("/sessions/:id", auth, cancelStudySession);
 
 router.post("/proposals", auth, createProposedSession);
 router.get("/proposals", auth, listProposedSessions);

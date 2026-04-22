@@ -33,7 +33,7 @@ const createBatchTopRequest = async (req, res) => {
       return res.status(400).json({ message: "moduleId, note and targetBatchTop are required" });
     }
 
-    cont [moduleItem, batchTopUser] = await Promise.all([
+    const [moduleItem, batchTopUser] = await Promise.all([
       Module.findById(moduleId).select("moduleCode moduleName academicYear semester"),
       User.findById(targetBatchTop).select("isBatchTop role isActive"),
     ]);
@@ -191,6 +191,34 @@ const listBatchTopSessions = async (req, res) => {
     return res.status(200).json(items);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch study sessions", error: error.message });
+  }
+};
+
+const cancelStudySession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await StudySession.findById(id).select("initiatedBy");
+    if (!session) {
+      return res.status(404).json({ message: "Study session not found" });
+    }
+
+    const isOwner = String(session.initiatedBy) === String(req.user.userId);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Only the session creator or an admin can cancel this session" });
+    }
+
+    await Promise.all([
+      StudySession.deleteOne({ _id: id }),
+      ProposedSession.updateMany(
+        { linkedStudySession: id },
+        { $set: { linkedStudySession: null } }
+      ),
+    ]);
+
+    return res.status(200).json({ message: "Study session cancelled" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to cancel study session", error: error.message });
   }
 };
 
@@ -366,6 +394,7 @@ module.exports = {
   listBatchTopPendingGroups,
   startBatchTopSession,
   listBatchTopSessions,
+  cancelStudySession,
   createProposedSession,
   listProposedSessions,
   voteProposedSession,
