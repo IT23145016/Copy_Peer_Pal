@@ -87,6 +87,14 @@ export default function App() {
           }
         />
         <Route
+          path="/study-sessions/edit-session"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "user"]}>
+              <StudySessionsProposePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/study-sessions/request"
           element={
             <ProtectedRoute allowedRoles={["admin", "user"]}>
