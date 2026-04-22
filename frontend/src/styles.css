@@ -1109,18 +1109,22 @@ body.theme-dark .landing-student {
   gap: 0.7rem;
 }
 
+.student-top-actions .mini-link,
 .theme-toggle,
 .menu-dot {
   margin: 0;
   padding: 0.7rem 0.95rem;
+  min-height: 42px;
   border-radius: 14px;
   border: 1px solid var(--stroke);
   background: var(--surface);
   color: var(--heading);
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
   font-weight: 700;
+  line-height: 1;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
@@ -1130,12 +1134,20 @@ body.theme-dark .landing-student {
 }
 
 .student-cta {
+  min-height: 42px;
   padding-inline: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .student-logout-btn {
   cursor: pointer;
   border: none;
+}
+
+.student-top-actions .mini-link:hover {
+  border-color: var(--stroke);
 }
 
 .student-account-link {
