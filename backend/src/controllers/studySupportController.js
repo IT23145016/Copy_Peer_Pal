@@ -33,7 +33,7 @@ const createBatchTopRequest = async (req, res) => {
       return res.status(400).json({ message: "moduleId, note and targetBatchTop are required" });
     }
 
-    const [moduleItem, batchTopUser] = await Promise.all([
+    cont [moduleItem, batchTopUser] = await Promise.all([
       Module.findById(moduleId).select("moduleCode moduleName academicYear semester"),
       User.findById(targetBatchTop).select("isBatchTop role isActive"),
     ]);
