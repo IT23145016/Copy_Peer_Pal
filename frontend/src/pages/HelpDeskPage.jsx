@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CircleHelp, Download, Flag, Plus, Trash2, Trophy, Upload, X } from "lucide-react";
+import { Bookmark, CircleHelp, Download, Flag, Plus, Trash2, Trophy, Upload, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -48,10 +48,18 @@ const STATUS_COLORS = {
   received: { bg: "rgba(22,163,74,0.1)", color: "#15803d", label: "Received" },
 };
 
+const ALLOWED_HELP_DOC_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+const ALLOWED_HELP_DOC_EXTENSIONS = new Set(["pdf", "docx"]);
+
 export default function HelpDeskPage() {
   const [profile, setProfile] = useState(null);
   const [modules, setModules] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [trustedUsers, setTrustedUsers] = useState([]);
   const [minTrustedDocs, setMinTrustedDocs] = useState(2);
@@ -63,33 +71,53 @@ export default function HelpDeskPage() {
   const [status, setStatus] = useState("");
   const [saving, setSaving] = useState(false);
   const [activeView, setActiveView] = useState("requests");
+  const [filters, setFilters] = useState({ moduleId: "", status: "" });
   const [showForm, setShowForm] = useState(false);
   const [isClearMode, setIsClearMode] = useState(false);
   const [selectedRequestIds, setSelectedRequestIds] = useState([]);
   const [confirmAction, setConfirmAction] = useState(null);
   const navigate = useNavigate();
   const auth = getStoredAuth();
+  const role = profile?.role || auth?.user?.role || "user";
+  const isAdmin = role === "admin";
 
   const canSubmit = useMemo(() => draft.moduleId && draft.message.trim(), [draft.message, draft.moduleId]);
-  const ownRequests = useMemo(() => requests.filter((item) => item.isOwner), [requests]);
+  const filteredRequests = useMemo(() => {
+    return requests.filter((item) => {
+      const requestModuleId = item.moduleRef?._id || item.moduleRef || "";
+      if (filters.moduleId && String(requestModuleId) !== filters.moduleId) return false;
+      if (filters.status && item.status !== filters.status) return false;
+      return true;
+    });
+  }, [requests, filters]);
+
   const receivedRequests = useMemo(
-    () => requests.filter((item) => item.status === "received"),
-    [requests]
+    () => filteredRequests.filter((item) => item.status === "received"),
+    [filteredRequests]
   );
   const receivedRequestIds = useMemo(
     () => receivedRequests.map((item) => item._id),
     [receivedRequests]
   );
+  const bookmarkedDocKeys = useMemo(
+    () =>
+      new Set(
+        bookmarks.map((item) => `${String(item.sourceRequestId)}:${String(item.sourceDocumentId)}`)
+      ),
+    [bookmarks]
+  );
 
   const loadData = async () => {
     try {
-      const [meRes, modRes, reqRes, lbRes] = await Promise.all([
+      const [bookmarksRes, meRes, modRes, reqRes, lbRes] = await Promise.all([
+        api.get("/helpdesk/bookmarks"),
         api.get("/auth/me"),
         api.get("/modules"),
         api.get("/helpdesk"),
         api.get("/helpdesk/leaderboard"),
       ]);
 
+      setBookmarks(bookmarksRes.data || []);
       setProfile(meRes.data);
       setModules(modRes.data);
       setRequests(reqRes.data);
@@ -128,6 +156,11 @@ export default function HelpDeskPage() {
     e.preventDefault();
     setError("");
     setStatus("");
+
+    if (isAdmin) {
+      setError("Admins can view help requests but cannot submit new ones.");
+      return;
+    }
 
     if (!canSubmit) {
       setError("Module and message are required");
@@ -235,6 +268,11 @@ export default function HelpDeskPage() {
         setError("Choose a document first");
         return;
       }
+      const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "";
+      if (!ALLOWED_HELP_DOC_EXTENSIONS.has(extension) || !ALLOWED_HELP_DOC_MIME_TYPES.has(file.type)) {
+        setError("Only PDF and DOCX files are allowed");
+        return;
+      }
       if (file.size > 1024 * 1024 * 2) {
         setError("Document must be less than 2MB");
         return;
@@ -271,8 +309,41 @@ export default function HelpDeskPage() {
     }
   };
 
+  const onBookmarkRequestDocs = async (requestItem) => {
+    const bookmarkableDocs = (requestItem.documents || []).filter(
+      (doc) => !bookmarkedDocKeys.has(`${String(requestItem._id)}:${String(doc._id)}`)
+    );
+
+    if (!bookmarkableDocs.length) {
+      return;
+    }
+
+    try {
+      setError("");
+      await Promise.all(
+        bookmarkableDocs.map((doc) => api.post(`/helpdesk/${requestItem._id}/documents/${doc._id}/bookmark`))
+      );
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to bookmark document");
+    }
+  };
+
+  const onRemoveBookmark = async (bookmarkId) => {
+    try {
+      setError("");
+      setStatus("");
+      await api.delete(`/helpdesk/bookmarks/${bookmarkId}`);
+      setStatus("Bookmark removed.");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to remove bookmark");
+    }
+  };
+
   const tabs = [
     { key: "requests", label: "Requests", icon: <CircleHelp size={15} /> },
+    { key: "bookmarks", label: "Bookmarks", icon: <Bookmark size={15} /> },
     { key: "leaderboard", label: "Leaderboard", icon: <Trophy size={15} /> },
   ];
 
@@ -283,7 +354,9 @@ export default function HelpDeskPage() {
         <div className="hd-header">
           <div>
             <h1 className="hd-title">Help Desk</h1>
-            <p className="pp-muted">Ask for help, share resources, and support your peers.</p>
+            <p className="pp-muted">
+              {isAdmin ? "View help requests, review shared documents, and support users." : "Ask for help, share resources, and support your peers."}
+            </p>
           </div>
           <div className="hd-header-actions">
             {activeView === "requests" ? (
@@ -302,17 +375,19 @@ export default function HelpDeskPage() {
                 <Trash2 size={16} /> {isClearMode ? "Cancel Clear" : "Clear Received"}
               </button>
             ) : null}
-            <button
-              type="button"
-              className="hd-new-btn"
-              onClick={() => {
-                setShowForm(true);
-                setEditingId("");
-                setDraft({ moduleId: modules[0]?._id || "", message: "", priority: "medium", status: "open" });
-              }}
-            >
-              <Plus size={16} /> New Request
-            </button>
+            {!isAdmin ? (
+              <button
+                type="button"
+                className="hd-new-btn"
+                onClick={() => {
+                  setShowForm(true);
+                  setEditingId("");
+                  setDraft({ moduleId: modules[0]?._id || "", message: "", priority: "medium", status: "open" });
+                }}
+              >
+                <Plus size={16} /> New Request
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -337,7 +412,7 @@ export default function HelpDeskPage() {
         {error ? <p className="error">{error}</p> : null}
         {status ? <p className="success">{status}</p> : null}
 
-        {showForm ? (
+        {showForm && !isAdmin ? (
           <div className="hd-modal-overlay">
             <div className="hd-modal">
               <div className="hd-modal-head">
@@ -398,6 +473,33 @@ export default function HelpDeskPage() {
 
         {activeView === "requests" ? (
           <>
+            <div className="aa-filter-row hd-filter-row">
+              <select
+                name="moduleId"
+                value={filters.moduleId}
+                onChange={(e) => setFilters((prev) => ({ ...prev, moduleId: e.target.value }))}
+              >
+                <option value="">All Modules</option>
+                {modules.map((m) => (
+                  <option key={m._id} value={m._id}>
+                    {m.moduleCode} - {m.moduleName}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="status"
+                value={filters.status}
+                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="">All Statuses</option>
+                <option value="open">Open</option>
+                <option value="received">Received</option>
+              </select>
+              <button type="button" className="aa-filter-reset-btn" onClick={() => setFilters({ moduleId: "", status: "" })}>
+                Reset
+              </button>
+            </div>
+
             {isClearMode ? (
               <div className="hd-clear-panel">
                 <div>
@@ -436,14 +538,18 @@ export default function HelpDeskPage() {
             ) : null}
 
             <div className="hd-requests-grid">
-            {requests.length ? (
-              requests.map((item) => {
+            {filteredRequests.length ? (
+              filteredRequests.map((item) => {
                 const s = STATUS_COLORS[item.status] || STATUS_COLORS.open;
                 const canEdit = item.isOwner && !item.hasDocuments;
                 const isSelected = selectedRequestIds.includes(item._id);
                 const canClearReceived = item.status === "received";
                 const canDeleteRequest = item.isOwner;
                 const showSelection = isClearMode && canClearReceived;
+                const allRequestDocsBookmarked =
+                  canClearReceived &&
+                  item.documents?.length &&
+                  item.documents.every((doc) => bookmarkedDocKeys.has(`${String(item._id)}:${String(doc._id)}`));
 
                 return (
                   <article key={item._id} className={`hd-card ${isClearMode && isSelected ? "hd-card-selected" : ""}`}>
@@ -477,6 +583,18 @@ export default function HelpDeskPage() {
                         <span className="hd-status-chip" style={{ background: s.bg, color: s.color }}>
                           {s.label}
                         </span>
+                        {canClearReceived && item.documents?.length ? (
+                          <button
+                            type="button"
+                            className={`hd-doc-btn hd-bookmark-icon-btn${allRequestDocsBookmarked ? " is-saved" : ""}`}
+                            disabled={allRequestDocsBookmarked}
+                            title={allRequestDocsBookmarked ? "All documents bookmarked" : "Bookmark received documents"}
+                            aria-label={allRequestDocsBookmarked ? "All documents bookmarked" : "Bookmark received documents"}
+                            onClick={() => onBookmarkRequestDocs(item)}
+                          >
+                            <Bookmark size={12} />
+                          </button>
+                        ) : null}
                       </div>
                     </div>
 
@@ -513,6 +631,7 @@ export default function HelpDeskPage() {
                         <Upload size={13} /> {uploadFiles[item._id] ? uploadFiles[item._id].name : "Choose file"}
                         <input
                           type="file"
+                          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                           style={{ display: "none" }}
                           onChange={(e) =>
                             setUploadFiles((prev) => ({ ...prev, [item._id]: e.target.files?.[0] || undefined }))
@@ -566,11 +685,55 @@ export default function HelpDeskPage() {
             ) : (
               <div className="hd-empty">
                 <CircleHelp size={40} />
-                <p>No requests yet. Be the first to ask for help!</p>
+                <p>{isAdmin ? "No help requests match this filter." : "No requests match this filter yet."}</p>
               </div>
             )}
             </div>
           </>
+        ) : null}
+
+        {activeView === "bookmarks" ? (
+          <div className="hd-leaderboard">
+            <div className="aa-card">
+              <div className="aa-card-head">
+                <div className="aa-card-icon">
+                  <Bookmark size={18} />
+                </div>
+                <div>
+                  <h3>Bookmarked Documents</h3>
+                  <p className="pp-muted">Save received documents now and download them later when you need them.</p>
+                </div>
+              </div>
+
+              <div className="hd-doc-list">
+                {bookmarks.length ? (
+                  bookmarks.map((item) => (
+                    <div key={item._id} className="hd-doc-row">
+                      <div className="hd-doc-main">
+                        <span className="hd-doc-name">{item.title}</span>
+                        <span className="pp-muted" style={{ fontSize: "0.78rem" }}>
+                          {item.moduleCode} - {item.moduleName} - {item.fileName}
+                        </span>
+                      </div>
+                      <div className="hd-doc-actions">
+                        <button type="button" className="hd-doc-btn" onClick={() => openDataUrl(item.fileData)}>
+                          Open
+                        </button>
+                        <button type="button" className="hd-doc-btn" onClick={() => downloadDataUrl(item.fileData, item.fileName)}>
+                          <Download size={12} />
+                        </button>
+                        <button type="button" className="hd-doc-btn hd-action-delete" onClick={() => onRemoveBookmark(item._id)}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="pp-muted">No bookmarked documents yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {activeView === "leaderboard" ? (

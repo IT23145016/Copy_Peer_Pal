@@ -7215,6 +7215,10 @@ body.theme-dark .quickadd-footer {
   flex-wrap: wrap;
 }
 
+.hd-filter-row {
+  margin-bottom: 1rem;
+}
+
 .hd-new-btn {
   display: inline-flex;
   align-items: center;
@@ -7585,6 +7589,23 @@ body.theme-dark .quickadd-footer {
   padding: 0.28rem 0.6rem; border-radius: 8px;
   border: 1px solid rgba(245,128,37,0.2); background: #fff;
   color: #c85a0a; font-size: 0.76rem; font-weight: 700; cursor: pointer;
+}
+
+.hd-bookmark-icon-btn {
+  padding: 0;
+  min-width: auto;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.hd-bookmark-icon-btn.is-saved {
+  color: #ca8a04;
+}
+
+.hd-bookmark-icon-btn.is-saved svg {
+  fill: currentColor;
 }
 
 .hd-approve-btn { background: rgba(22,163,74,0.08); color: #15803d; border-color: rgba(22,163,74,0.2); }

@@ -72,6 +72,52 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    bookmarkedHelpDocs: [
+      {
+        sourceRequestId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "HelpRequest",
+          required: true,
+        },
+        sourceDocumentId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        moduleCode: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+        moduleName: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+        fileName: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        fileType: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+        fileData: {
+          type: String,
+          required: true,
+        },
+        bookmarkedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     collection: "User",
