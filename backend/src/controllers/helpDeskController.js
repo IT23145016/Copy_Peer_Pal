@@ -1,5 +1,19 @@
 const HelpRequest = require("../models/HelpRequest");
 const Module = require("../models/Module");
+const User = require("../models/User");
+
+const ALLOWED_HELP_DOC_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
+const ALLOWED_HELP_DOC_EXTENSIONS = new Set(["pdf", "docx"]);
+
+const buildHelpBookmarkTitle = ({ moduleCode, fileName, bookmarkedAt }) => {
+  const baseName = typeof fileName === "string" ? fileName.replace(/\.[^/.]+$/, "").trim() : "Document";
+  const stamp = new Date(bookmarkedAt).toISOString().slice(0, 10);
+  return `${moduleCode || "Module"} - ${baseName} - ${stamp}`;
+};
 
 const toResponse = (doc, currentUserId) => {
   const plain = doc.toObject ? doc.toObject() : doc;
@@ -178,9 +192,13 @@ const uploadHelpDocument = async (req, res) => {
     const normalizedName = typeof fileName === "string" ? fileName.trim() : "";
     const normalizedType = typeof fileType === "string" ? fileType.trim() : "";
     const normalizedData = typeof fileData === "string" ? fileData : "";
+    const extension = normalizedName.includes(".") ? normalizedName.split(".").pop().toLowerCase() : "";
 
     if (!normalizedName || !normalizedData) {
       return res.status(400).json({ message: "fileName and fileData are required" });
+    }
+    if (!ALLOWED_HELP_DOC_EXTENSIONS.has(extension) || !ALLOWED_HELP_DOC_MIME_TYPES.has(normalizedType)) {
+      return res.status(400).json({ message: "Only PDF and DOCX files are allowed" });
     }
     if (normalizedData.length > 2_000_000) {
       return res.status(400).json({ message: "Document is too large" });
@@ -211,6 +229,117 @@ const uploadHelpDocument = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Failed to upload document", error: error.message });
+  }
+};
+
+const listBookmarkedHelpDocuments = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select("bookmarkedHelpDocs");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const bookmarks = [...(user.bookmarkedHelpDocs || [])]
+      .sort((a, b) => new Date(b.bookmarkedAt).getTime() - new Date(a.bookmarkedAt).getTime())
+      .map((item) => ({
+        _id: item._id,
+        sourceRequestId: item.sourceRequestId,
+        sourceDocumentId: item.sourceDocumentId,
+        title: item.title,
+        moduleCode: item.moduleCode,
+        moduleName: item.moduleName,
+        fileName: item.fileName,
+        fileType: item.fileType,
+        fileData: item.fileData,
+        bookmarkedAt: item.bookmarkedAt,
+      }));
+
+    return res.status(200).json(bookmarks);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch bookmarked documents", error: error.message });
+  }
+};
+
+const bookmarkHelpDocument = async (req, res) => {
+  try {
+    const { id, documentId } = req.params;
+    const request = await HelpRequest.findById(id);
+    if (!request) return res.status(404).json({ message: "Help request not found" });
+    if (request.status !== "received") {
+      return res.status(400).json({ message: "Only received documents can be bookmarked" });
+    }
+    if (request.hiddenFor.some((userId) => String(userId) === String(req.user.userId))) {
+      return res.status(403).json({ message: "This help request is hidden from your dashboard" });
+    }
+
+    const targetDoc = request.documents.id(documentId);
+    if (!targetDoc) return res.status(404).json({ message: "Document not found" });
+
+    const user = await User.findById(req.user.userId).select("bookmarkedHelpDocs");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const existing = user.bookmarkedHelpDocs.find(
+      (item) => String(item.sourceDocumentId) === String(documentId) && String(item.sourceRequestId) === String(id)
+    );
+    if (existing) {
+      return res.status(409).json({ message: "Document already bookmarked", bookmark: existing });
+    }
+
+    const bookmarkedAt = new Date();
+    const bookmark = {
+      sourceRequestId: request._id,
+      sourceDocumentId: targetDoc._id,
+      title: buildHelpBookmarkTitle({
+        moduleCode: request.moduleCode,
+        fileName: targetDoc.fileName,
+        bookmarkedAt,
+      }),
+      moduleCode: request.moduleCode,
+      moduleName: request.moduleName,
+      fileName: targetDoc.fileName,
+      fileType: targetDoc.fileType,
+      fileData: targetDoc.fileData,
+      bookmarkedAt,
+    };
+
+    user.bookmarkedHelpDocs.push(bookmark);
+    await user.save();
+
+    const savedBookmark = user.bookmarkedHelpDocs[user.bookmarkedHelpDocs.length - 1];
+
+    return res.status(201).json({
+      message: "Document bookmarked",
+      bookmark: {
+        _id: savedBookmark._id,
+        sourceRequestId: savedBookmark.sourceRequestId,
+        sourceDocumentId: savedBookmark.sourceDocumentId,
+        title: savedBookmark.title,
+        moduleCode: savedBookmark.moduleCode,
+        moduleName: savedBookmark.moduleName,
+        fileName: savedBookmark.fileName,
+        fileType: savedBookmark.fileType,
+        fileData: savedBookmark.fileData,
+        bookmarkedAt: savedBookmark.bookmarkedAt,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to bookmark document", error: error.message });
+  }
+};
+
+const removeBookmarkedHelpDocument = async (req, res) => {
+  try {
+    const { bookmarkId } = req.params;
+    const user = await User.findById(req.user.userId).select("bookmarkedHelpDocs");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const existing = user.bookmarkedHelpDocs.id(bookmarkId);
+    if (!existing) return res.status(404).json({ message: "Bookmark not found" });
+
+    existing.deleteOne();
+    await user.save();
+
+    return res.status(200).json({ message: "Bookmark removed" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to remove bookmark", error: error.message });
   }
 };
 
@@ -338,6 +467,9 @@ module.exports = {
   deleteHelpRequest,
   clearHelpRequestForMe,
   uploadHelpDocument,
+  listBookmarkedHelpDocuments,
+  bookmarkHelpDocument,
+  removeBookmarkedHelpDocument,
   approveHelpDocument,
   getLeaderboard,
 };

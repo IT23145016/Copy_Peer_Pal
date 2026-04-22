@@ -2,7 +2,7 @@ const Assignment = require("../models/Assignment");
 const AssignmentProgress = require("../models/AssignmentProgress");
 const Module = require("../models/Module");
 const User = require("../models/User");
-const { sendAssignmentDueSoonEmails } = require("../utils/mailer");
+const { sendAssignmentDueSoonEmails, sendDeadlineExtendedEmails } = require("../utils/mailer");
 
 const normalizeAssignmentPayload = (body = {}) => {
   const moduleId = typeof body.moduleId === "string" ? body.moduleId.trim() : "";
@@ -230,18 +230,40 @@ const updateAssignment = async (req, res) => {
     const moduleItem = await Module.findById(payload.moduleId);
     if (!moduleItem) return res.status(404).json({ message: "Module not found" });
 
+    const oldDeadline = assignment.deadline;
+    const newDeadline = new Date(payload.deadline);
+    const deadlineExtended = newDeadline > oldDeadline;
+
     assignment.moduleRef = moduleItem._id;
     assignment.moduleCode = moduleItem.moduleCode;
     assignment.moduleName = moduleItem.moduleName;
     assignment.assignmentName = payload.assignmentName;
     assignment.publishedDate = new Date(payload.publishedDate);
-    assignment.deadline = new Date(payload.deadline);
+    assignment.deadline = newDeadline;
     assignment.academicYear = moduleItem.academicYear;
     assignment.semester = moduleItem.semester;
 
     await assignment.save();
 
-    return res.status(200).json({ message: "Assignment updated successfully", assignment });
+    let emailNotice = { deadlineExtended, sent: 0, skipped: true };
+
+    if (deadlineExtended) {
+      const recipients = await User.find({
+        role: "user",
+        isActive: { $ne: false },
+        academicYear: moduleItem.academicYear,
+        semester: moduleItem.semester,
+      }).select("email");
+
+      try {
+        const result = await sendDeadlineExtendedEmails({ recipients, assignment, oldDeadline });
+        emailNotice = { deadlineExtended, ...result };
+      } catch (mailError) {
+        emailNotice = { deadlineExtended, sent: 0, skipped: false, error: mailError.message };
+      }
+    }
+
+    return res.status(200).json({ message: "Assignment updated successfully", assignment, emailNotice });
   } catch (error) {
     return res.status(500).json({ message: "Failed to update assignment", error: error.message });
   }
