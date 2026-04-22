@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CircleHelp, UsersRound } from "lucide-react";
+import { ArrowLeft, CircleHelp, Pencil, Trash2, UsersRound, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -18,6 +18,7 @@ export default function StudySessionsRequestPage() {
   const [batchTops, setBatchTops] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [draft, setDraft] = useState({ moduleId: "", note: "", targetBatchTop: "" });
+  const [editingId, setEditingId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -55,6 +56,15 @@ export default function StudySessionsRequestPage() {
     navigate("/");
   };
 
+  const resetDraft = () => {
+    setEditingId("");
+    setDraft({
+      moduleId: modules[0]?._id || "",
+      note: "",
+      targetBatchTop: batchTops[0]?._id || "",
+    });
+  };
+
   const selectedBatchTop = batchTops.find((item) => item._id === draft.targetBatchTop) || null;
   const selectedModule = modules.find((item) => item._id === draft.moduleId) || null;
   const canSubmit = !!draft.moduleId && !!draft.targetBatchTop && !!draft.note.trim() && !submitting;
@@ -70,14 +80,46 @@ export default function StudySessionsRequestPage() {
 
     try {
       setSubmitting(true);
-      await api.post("/study-support/requests", draft);
-      setStatus("Request sent to Batch Top!");
-      setDraft((prev) => ({ ...prev, note: "" }));
+      if (editingId) {
+        await api.put(`/study-support/requests/${editingId}`, draft);
+        setStatus("Request updated");
+      } else {
+        await api.post("/study-support/requests", draft);
+        setStatus("Request sent to Batch Top!");
+      }
+      resetDraft();
       await loadData();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to send");
+      setError(err.response?.data?.message || (editingId ? "Failed to update" : "Failed to send"));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onEditRequest = (item) => {
+    setError("");
+    setStatus("");
+    setEditingId(item._id);
+    setDraft({
+      moduleId: item.moduleRef?._id || item.moduleRef || "",
+      note: item.note || "",
+      targetBatchTop: item.targetBatchTop?._id || item.targetBatchTop || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const onDeleteRequest = async (id) => {
+    if (!window.confirm("Delete this request?")) return;
+
+    try {
+      setError("");
+      setStatus("");
+      await api.delete(`/study-support/requests/${id}`);
+      if (editingId === id) resetDraft();
+      setStatus("Request deleted");
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete");
     }
   };
 
@@ -107,7 +149,7 @@ export default function StudySessionsRequestPage() {
             <div className="aa-card-head">
               <div className="aa-card-icon"><CircleHelp size={18} /></div>
               <div>
-                <h3>Send Request</h3>
+                <h3>{editingId ? "Edit Request" : "Send Request"}</h3>
                 <p className="pp-muted">Good requests mention the exact lesson, assignment, or topic you need help with.</p>
               </div>
             </div>
@@ -176,9 +218,16 @@ export default function StudySessionsRequestPage() {
                 </div>
               </div>
 
-              <button type="submit" className="aa-submit-btn" disabled={!canSubmit || batchTops.length === 0 || modules.length === 0}>
-                {submitting ? "Sending..." : "Send Request"}
-              </button>
+              <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap" }}>
+                <button type="submit" className="aa-submit-btn" disabled={!canSubmit || batchTops.length === 0 || modules.length === 0}>
+                  {submitting ? (editingId ? "Updating..." : "Sending...") : (editingId ? "Update Request" : "Send Request")}
+                </button>
+                {editingId ? (
+                  <button type="button" className="ss-session-cancel-btn" onClick={resetDraft}>
+                    <X size={13} /> Cancel Edit
+                  </button>
+                ) : null}
+              </div>
             </form>
           </div>
 
@@ -187,6 +236,8 @@ export default function StudySessionsRequestPage() {
             <div className="ss-sessions-list">
               {myRequests.length ? myRequests.map((item) => {
                 const style = STATUS_STYLE[item.status] || STATUS_STYLE.pending;
+                const canManage = item.status === "pending";
+
                 return (
                   <div key={item._id} className="ss-session-card">
                     <div className="ss-session-top">
@@ -196,6 +247,20 @@ export default function StudySessionsRequestPage() {
                     <p className="ss-proposal-desc">{item.note}</p>
                     <p className="pp-muted" style={{ fontSize: "0.78rem" }}>To: {item.targetBatchTop?.name || "-"}</p>
                     <p className="pp-muted" style={{ fontSize: "0.74rem" }}>Requested: {formatRequestDate(item.createdAt) || "Recently"}</p>
+                    {canManage ? (
+                      <div style={{ display: "flex", gap: "0.55rem", marginTop: "0.7rem", flexWrap: "wrap" }}>
+                        <button type="button" className="ss-action-btn ss-btn-outline" style={{ padding: "0.52rem 0.85rem" }} onClick={() => onEditRequest(item)}>
+                          <Pencil size={13} /> Edit
+                        </button>
+                        <button type="button" className="ss-session-cancel-btn" onClick={() => onDeleteRequest(item._id)}>
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="pp-muted" style={{ fontSize: "0.74rem", marginTop: "0.6rem" }}>
+                        Only pending requests can be edited or deleted.
+                      </p>
+                    )}
                   </div>
                 );
               }) : <div className="ss-empty"><CircleHelp size={28} /><p>No requests sent yet.</p></div>}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
 import { clearStoredAuth, getStoredAuth } from "../utils/auth";
@@ -11,6 +11,9 @@ export default function StudySessionsProposePage() {
   const [draft, setDraft] = useState({ moduleId: "", description: "", date: "", startTime: "", endTime: "" });
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  const isEditing = !!editId;
   const navigate = useNavigate();
   const auth = getStoredAuth();
 
@@ -19,21 +22,41 @@ export default function StudySessionsProposePage() {
       try {
         const [meRes, modRes] = await Promise.all([api.get("/auth/me"), api.get("/modules")]);
         setProfile(meRes.data); setModules(modRes.data);
-        setDraft((p) => ({ ...p, moduleId: p.moduleId || modRes.data?.[0]?._id || "" }));
+        
+        if (isEditing) {
+          // Load proposal data for editing
+          const propRes = await api.get(`/study-support/proposals/${editId}`);
+          const proposal = propRes.data;
+          setDraft({
+            moduleId: proposal.moduleRef?._id || proposal.moduleRef || "",
+            description: proposal.description || "",
+            date: proposal.date || "",
+            startTime: proposal.startTime || "",
+            endTime: proposal.endTime || "",
+          });
+        } else {
+          setDraft((p) => ({ ...p, moduleId: p.moduleId || modRes.data?.[0]?._id || "" }));
+        }
       } catch (err) { setError(err.response?.data?.message || "Failed to load"); }
     };
     load();
-  }, []);
+  }, [editId]);
 
   const onLogout = () => { clearStoredAuth(); navigate("/"); };
 
   const onSubmit = async (e) => {
     e.preventDefault(); setError(""); setStatus("");
     try {
-      await api.post("/study-support/proposals", draft);
-      setStatus("Proposal created successfully!");
-      setDraft({ moduleId: modules[0]?._id || "", description: "", date: "", startTime: "", endTime: "" });
-    } catch (err) { setError(err.response?.data?.message || "Failed to create"); }
+      if (isEditing) {
+        await api.put(`/study-support/proposals/${editId}`, draft);
+        setStatus("Proposal updated successfully!");
+        setTimeout(() => navigate("/study-sessions"), 1500);
+      } else {
+        await api.post("/study-support/proposals", draft);
+        setStatus("Proposal created successfully!");
+        setDraft({ moduleId: modules[0]?._id || "", description: "", date: "", startTime: "", endTime: "" });
+      }
+    } catch (err) { setError(err.response?.data?.message || (isEditing ? "Failed to update" : "Failed to create")); }
   };
 
   return (
@@ -43,7 +66,7 @@ export default function StudySessionsProposePage() {
         <div className="ss-header">
           <div>
             <button type="button" className="aa-back-btn" onClick={() => navigate("/study-sessions")}><ArrowLeft size={15} /> Back</button>
-            <h1 className="hd-title" style={{ marginTop: "0.5rem" }}>Propose a Session</h1>
+            <h1 className="hd-title" style={{ marginTop: "0.5rem" }}>{isEditing ? "Edit Proposal" : "Propose a Session"}</h1>
           </div>
         </div>
 
@@ -54,7 +77,7 @@ export default function StudySessionsProposePage() {
           <div className="aa-card">
             <div className="aa-card-head">
               <div className="aa-card-icon"><Plus size={18} /></div>
-              <div><h3>New Proposal</h3><p className="pp-muted">Suggest a study session for your peers.</p></div>
+              <div><h3>{isEditing ? "Edit Proposal" : "New Proposal"}</h3><p className="pp-muted">{isEditing ? "Update your study session proposal." : "Suggest a study session for your peers."}</p></div>
             </div>
             <form className="aa-form" onSubmit={onSubmit} noValidate>
               <div className="aa-field">
@@ -73,7 +96,7 @@ export default function StudySessionsProposePage() {
                 <div className="aa-field"><label>Start</label><input type="time" value={draft.startTime} onChange={(e) => setDraft((p) => ({ ...p, startTime: e.target.value }))} /></div>
                 <div className="aa-field"><label>End</label><input type="time" value={draft.endTime} onChange={(e) => setDraft((p) => ({ ...p, endTime: e.target.value }))} /></div>
               </div>
-              <button type="submit" className="aa-submit-btn">Create Proposal</button>
+              <button type="submit" className="aa-submit-btn">{isEditing ? "Update Proposal" : "Create Proposal"}</button>
             </form>
           </div>
         </div>
