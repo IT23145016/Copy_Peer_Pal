@@ -11194,3 +11194,33 @@ body.theme-dark .pp-sidebar .pp-nav-item.active svg {
 .pp-sidebar-collapsed .pp-sidebar-toggle {
   margin-left: 0 !important;
 }
+
+/* Dark mode — clear received button & panel */
+body.theme-dark .hd-clear-btn {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.35);
+  color: #f87171;
+}
+body.theme-dark .hd-clear-btn.active {
+  background: rgba(239,68,68,0.22);
+}
+body.theme-dark .hd-clear-btn:disabled {
+  opacity: 0.4;
+}
+body.theme-dark .hd-clear-panel {
+  background: linear-gradient(180deg, rgba(30,20,25,0.96) 0%, rgba(40,15,15,0.96) 100%);
+  border-color: rgba(239,68,68,0.22);
+}
+body.theme-dark .hd-clear-panel strong {
+  color: #f1f5f9;
+}
+body.theme-dark .hd-clear-action-btn {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(245,128,37,0.25);
+  color: #cbd5e1;
+}
+body.theme-dark .hd-clear-action-danger {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.35);
+  color: #f87171;
+}

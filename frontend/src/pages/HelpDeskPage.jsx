@@ -583,7 +583,7 @@ export default function HelpDeskPage() {
                         <span className="hd-status-chip" style={{ background: s.bg, color: s.color }}>
                           {s.label}
                         </span>
-                        {canClearReceived && item.documents?.length ? (
+                        {canClearReceived && !isAdmin && item.documents?.length ? (
                           <button
                             type="button"
                             className={`hd-doc-btn hd-bookmark-icon-btn${allRequestDocsBookmarked ? " is-saved" : ""}`}
