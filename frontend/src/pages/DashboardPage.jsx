@@ -169,6 +169,7 @@ export default function DashboardPage() {
       <Sidebar profile={profile || auth?.user} onLogout={onLogout} />
       <main className="pp-main">
 
+        {activeSection === "dashboard" ? (
         <div className="pp-welcome">
           <div>
             <h1 className="pp-welcome-name">Hey, {profile?.name?.split(" ")[0] || auth?.user?.name?.split(" ")[0] || "Student"} 👋</h1>
@@ -180,6 +181,7 @@ export default function DashboardPage() {
             <span className="pp-pill pp-pill-soft"><BookMarked size={14} /> {modules.length} modules</span>
           </div>
         </div>
+        ) : null}
 
         {error ? <p className="error">{error}</p> : null}
         {status ? <p className="success">{status}</p> : null}

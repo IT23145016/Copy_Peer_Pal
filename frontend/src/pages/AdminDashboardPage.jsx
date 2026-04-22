@@ -221,18 +221,19 @@ export default function AdminDashboardPage() {
       />
 
       <main className="pp-main">
-        <div className="pp-welcome">
-          <div>
-            <h1 className="pp-welcome-name">Welcome back, {profile?.name?.split(" ")[0] || auth?.user?.name?.split(" ")[0] || "Admin"}</h1>
-            <p className="pp-welcome-sub">Here is a simpler overview of your admin workspace.</p>
-          </div>
-        </div>
-
         {error ? <p className="error">{error}</p> : null}
         {status ? <p className="success">{status}</p> : null}
 
         {activeSection === "dashboard" ? (
-          <div className="adm-dashboard-clean">
+          <>
+            <div className="pp-welcome">
+              <div>
+                <h1 className="pp-welcome-name">Welcome back, {profile?.name?.split(" ")[0] || auth?.user?.name?.split(" ")[0] || "Admin"}</h1>
+                <p className="pp-welcome-sub">Here is a simpler overview of your admin workspace.</p>
+              </div>
+            </div>
+
+            <div className="adm-dashboard-clean">
             <section className="adm-overview-hero">
               <div className="adm-overview-actions">
                 <button
@@ -499,7 +500,8 @@ export default function AdminDashboardPage() {
                 </div>
               </article>
             </section>
-          </div>
+            </div>
+          </>
         ) : null}
 
         {activeSection === "assignments" ? (

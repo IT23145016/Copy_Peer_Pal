@@ -1,4 +1,4 @@
-import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, LayoutDashboard, UserRound } from "lucide-react";
+import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, LayoutDashboard, Presentation, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getDashboardPathByRole, getStoredAuth } from "../utils/auth";
@@ -76,7 +76,7 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
               {!collapsed && <span>Help Desk</span>}
             </Link>
             <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
-              <CalendarDays size={21} />
+              <Presentation size={21} />
               {!collapsed && <span>Study Sessions</span>}
             </Link>
             <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
@@ -88,14 +88,14 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
               {!collapsed && <span>Modules</span>}
             </Link>
             <Link to="/dashboard?tab=tracker" className={`pp-nav-item ${isActive("/dashboard", "tracker") ? "active" : ""}`} title="Assignment Tracker">
-              <BookOpenCheck size={21} />
+              <ClipboardList size={21} />
               {!collapsed && <span>Assignment Tracker</span>}
             </Link>
           </>
         ) : (
           <>
             <Link to="/admin/dashboard?tab=assignments" className={`pp-nav-item ${isActive("/admin/dashboard", "assignments") ? "active" : ""}`} title="Assignments">
-              <BookOpenCheck size={21} />
+              <ClipboardList size={21} />
               {!collapsed && <span>Assignments</span>}
             </Link>
             <Link to="/admin/dashboard?tab=modules" className={`pp-nav-item ${isActive("/admin/dashboard", "modules") ? "active" : ""}`} title="Modules">
@@ -111,7 +111,7 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
               {!collapsed && <span>Help Desk</span>}
             </Link>
             <Link to="/study-sessions" className={`pp-nav-item ${isActive("/study-sessions") ? "active" : ""}`} title="Study Sessions">
-              <CalendarDays size={21} />
+              <Presentation size={21} />
               {!collapsed && <span>Study Sessions</span>}
             </Link>
             <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
