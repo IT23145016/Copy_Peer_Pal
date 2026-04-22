@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock3, ExternalLink, Funnel, Plus, ThumbsDown, ThumbsUp, Trash2, UsersRound, X } from "lucide-react";
+import { CalendarDays, Clock3, ExternalLink, Funnel, Pencil, Plus, ThumbsDown, ThumbsUp, Trash2, UsersRound, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -11,12 +11,29 @@ const getModuleKey = (value) => {
   return value._id || "";
 };
 
+const formatTimeToAmPm = (value) => {
+  if (typeof value !== "string") return value || "";
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return trimmed;
+
+  let hours = Number(match[1]);
+  const minutes = match[2];
+  const suffix = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes} ${suffix}`;
+};
+
 export default function StudySessionsPage() {
   const [profile, setProfile] = useState(null);
   const [modules, setModules] = useState([]);
   const [studySessions, setStudySessions] = useState([]);
   const [proposals, setProposals] = useState([]);
   const [meetingLinkDrafts, setMeetingLinkDrafts] = useState({});
+  const [editingSessionId, setEditingSessionId] = useState("");
+  const [sessionDraft, setSessionDraft] = useState({ date: "", startTime: "", endTime: "", meetingLink: "" });
+  const [editingProposalId, setEditingProposalId] = useState("");
+  const [proposalDraft, setProposalDraft] = useState({ moduleId: "", description: "", date: "", startTime: "", endTime: "" });
   const [filters, setFilters] = useState({ year: "", semester: "", moduleCode: "" });
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -106,6 +123,44 @@ export default function StudySessionsPage() {
     }
   };
 
+  const onStartEditSession = (session) => {
+    setEditingSessionId(session._id);
+    setSessionDraft({
+      date: session.date || "",
+      startTime: session.startTime || "",
+      endTime: session.endTime || "",
+      meetingLink: session.meetingLink || "",
+    });
+  };
+
+  const onStopEditSession = () => {
+    setEditingSessionId("");
+    setSessionDraft({ date: "", startTime: "", endTime: "", meetingLink: "" });
+  };
+
+  const onSaveSessionEdit = async (sessionId) => {
+    if (!sessionDraft.date || !sessionDraft.startTime || !sessionDraft.endTime || !sessionDraft.meetingLink.trim()) {
+      setError("Date, time range, and meeting link are required");
+      return;
+    }
+
+    try {
+      setError("");
+      setStatus("");
+      await api.put(`/study-support/sessions/${sessionId}`, {
+        date: sessionDraft.date,
+        startTime: sessionDraft.startTime,
+        endTime: sessionDraft.endTime,
+        meetingLink: sessionDraft.meetingLink,
+      });
+      setStatus("Study session updated");
+      onStopEditSession();
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update session");
+    }
+  };
+
   const onDeleteProposal = async (proposalId) => {
     if (!window.confirm("Delete this proposal?")) return;
 
@@ -122,6 +177,40 @@ export default function StudySessionsPage() {
       await loadData();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete proposal");
+    }
+  };
+
+  const onStartEditProposal = (proposal) => {
+    setEditingProposalId(proposal._id);
+    setProposalDraft({
+      moduleId: String(getModuleKey(proposal.moduleRef) || ""),
+      description: proposal.description || "",
+      date: proposal.date || "",
+      startTime: proposal.startTime || "",
+      endTime: proposal.endTime || "",
+    });
+  };
+
+  const onStopEditProposal = () => {
+    setEditingProposalId("");
+    setProposalDraft({ moduleId: "", description: "", date: "", startTime: "", endTime: "" });
+  };
+
+  const onSaveProposalEdit = async (proposalId) => {
+    if (!proposalDraft.moduleId || !proposalDraft.description.trim() || !proposalDraft.date || !proposalDraft.startTime || !proposalDraft.endTime) {
+      setError("Module, description, date, start time, and end time are required");
+      return;
+    }
+
+    try {
+      setError("");
+      setStatus("");
+      await api.put(`/study-support/proposals/${proposalId}`, proposalDraft);
+      setStatus("Proposal updated");
+      onStopEditProposal();
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update proposal");
     }
   };
 
@@ -264,15 +353,16 @@ export default function StudySessionsPage() {
           <h3 className="ss-section-title"><CalendarDays size={16} /> Upcoming Sessions</h3>
           <div className="ss-sessions-list">
             {filteredStudySessions.length ? filteredStudySessions.map((item) => {
-              const canCancelSession =
+              const canManageSession =
                 isAdmin ||
                 String(item.initiatedBy?._id || item.initiatedBy) === String(profile?._id);
+              const isEditingSession = editingSessionId === item._id;
 
               return (
                 <div key={item._id} className="ss-session-card">
                   <div className="ss-session-top">
                     <span className="hd-module-badge">{item.moduleCode}</span>
-                    <span className="ss-time-chip"><Clock3 size={12} /> {item.startTime}-{item.endTime}</span>
+                    <span className="ss-time-chip"><Clock3 size={12} /> {formatTimeToAmPm(item.startTime)}-{formatTimeToAmPm(item.endTime)}</span>
                   </div>
                   <h4 className="ss-session-name">{item.moduleName}</h4>
                   <p className="pp-muted ss-date">Date: {item.date}</p>
@@ -284,17 +374,73 @@ export default function StudySessionsPage() {
                     ) : (
                       <p className="pp-muted" style={{ fontSize: "0.78rem", margin: 0 }}>Link pending</p>
                     )}
-                    {canCancelSession ? (
-                      <button
-                        type="button"
-                        className="ss-action-btn ss-btn-outline"
-                        style={{ padding: "0.6rem 0.9rem" }}
-                        onClick={() => onCancelSession(item._id)}
-                      >
-                        <X size={13} /> Cancel Session
-                      </button>
+                    {canManageSession ? (
+                      <>
+                        <button
+                          type="button"
+                          className="ss-action-btn ss-btn-outline"
+                          style={{ padding: "0.55rem 0.85rem" }}
+                          onClick={() => isEditingSession ? onStopEditSession() : onStartEditSession(item)}
+                        >
+                          <Pencil size={13} /> {isEditingSession ? "Close Edit" : "Edit"}
+                        </button>
+                        <button
+                          type="button"
+                          className="ss-session-cancel-btn"
+                          onClick={() => onCancelSession(item._id)}
+                        >
+                          <X size={13} /> Cancel Session
+                        </button>
+                      </>
                     ) : null}
                   </div>
+                  {isEditingSession ? (
+                    <div style={{ display: "grid", gap: "0.65rem", marginTop: "0.85rem", paddingTop: "0.85rem", borderTop: "1px solid rgba(148,163,184,0.18)" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>
+                        <input
+                          type="date"
+                          value={sessionDraft.date}
+                          onChange={(e) => setSessionDraft((prev) => ({ ...prev, date: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                        <input
+                          type="time"
+                          value={sessionDraft.startTime}
+                          onChange={(e) => setSessionDraft((prev) => ({ ...prev, startTime: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                        <input
+                          type="time"
+                          value={sessionDraft.endTime}
+                          onChange={(e) => setSessionDraft((prev) => ({ ...prev, endTime: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Meeting link"
+                        value={sessionDraft.meetingLink}
+                        onChange={(e) => setSessionDraft((prev) => ({ ...prev, meetingLink: e.target.value }))}
+                        style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                      />
+                      <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="ss-join-btn"
+                          onClick={() => onSaveSessionEdit(item._id)}
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          type="button"
+                          className="ss-session-cancel-btn"
+                          onClick={onStopEditSession}
+                        >
+                          <X size={13} /> Cancel Edit
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               );
             }) : (
@@ -312,6 +458,9 @@ export default function StudySessionsPage() {
               const hasLinkedSession = !!item.linkedStudySession;
               const canDeleteProposal =
                 !hasLinkedSession && (isAdmin || (isOwner && isPendingProposal));
+              const canEditProposal =
+                !hasLinkedSession && isPendingProposal && (isAdmin || isOwner);
+              const isEditingProposal = editingProposalId === item._id;
 
               return (
                 <div key={item._id} className={`ss-proposal-card ${item.status === "approved" ? "ss-proposal-approved" : ""}`}>
@@ -320,7 +469,7 @@ export default function StudySessionsPage() {
                     <span className={`ss-status-chip ${item.status === "approved" ? "ss-chip-green" : "ss-chip-soft"}`}>{item.status}</span>
                   </div>
                   <p className="ss-proposal-desc">{item.description}</p>
-                  <p className="pp-muted" style={{ fontSize: "0.78rem" }}>Date: {item.date} · {item.startTime}-{item.endTime}</p>
+                  <p className="pp-muted" style={{ fontSize: "0.78rem" }}>Date: {item.date} · {formatTimeToAmPm(item.startTime)}-{formatTimeToAmPm(item.endTime)}</p>
                   <div className="ss-vote-row">
                     <button
                       type="button"
@@ -343,6 +492,18 @@ export default function StudySessionsPage() {
                     {isOwner && <span className="pp-muted" style={{ fontSize: "0.74rem" }}>Your proposal</span>}
                     {!isOwner && alreadyVoted && <span className="pp-muted" style={{ fontSize: "0.74rem" }}>Voted ✓</span>}
                   </div>
+                  {canEditProposal ? (
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="ss-action-btn ss-btn-outline"
+                        style={{ padding: "0.55rem 0.9rem" }}
+                        onClick={() => navigate(`/study-sessions/propose?edit=${item._id}`)}
+                      >
+                        <Pencil size={13} /> Edit Proposal
+                      </button>
+                    </div>
+                  ) : null}
                   {canDeleteProposal ? (
                     <div style={{ marginTop: "0.5rem" }}>
                       <button
@@ -359,6 +520,65 @@ export default function StudySessionsPage() {
                     <p className="pp-muted" style={{ fontSize: "0.74rem", marginTop: "0.5rem" }}>
                       This proposal already has a created session. Cancel the session first.
                     </p>
+                  ) : null}
+                  {isEditingProposal ? (
+                    <div style={{ display: "grid", gap: "0.65rem", marginTop: "0.85rem", paddingTop: "0.85rem", borderTop: "1px solid rgba(148,163,184,0.18)" }}>
+                      <select
+                        value={proposalDraft.moduleId}
+                        onChange={(e) => setProposalDraft((prev) => ({ ...prev, moduleId: e.target.value }))}
+                        style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                      >
+                        <option value="">Select Module</option>
+                        {modules.map((moduleItem) => (
+                          <option key={moduleItem._id} value={moduleItem._id}>
+                            {moduleItem.moduleCode} - {moduleItem.moduleName}
+                          </option>
+                        ))}
+                      </select>
+                      <textarea
+                        rows={3}
+                        placeholder="Update proposal details"
+                        value={proposalDraft.description}
+                        onChange={(e) => setProposalDraft((prev) => ({ ...prev, description: e.target.value }))}
+                        style={{ fontSize: "0.85rem", padding: "0.65rem 0.75rem", borderRadius: "10px", border: "1px solid #dbe2ea", resize: "vertical", fontFamily: "inherit" }}
+                      />
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.6rem" }}>
+                        <input
+                          type="date"
+                          value={proposalDraft.date}
+                          onChange={(e) => setProposalDraft((prev) => ({ ...prev, date: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                        <input
+                          type="time"
+                          value={proposalDraft.startTime}
+                          onChange={(e) => setProposalDraft((prev) => ({ ...prev, startTime: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                        <input
+                          type="time"
+                          value={proposalDraft.endTime}
+                          onChange={(e) => setProposalDraft((prev) => ({ ...prev, endTime: e.target.value }))}
+                          style={{ fontSize: "0.85rem", padding: "0.58rem 0.7rem", borderRadius: "10px", border: "1px solid #dbe2ea" }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: "0.55rem", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className="ss-join-btn"
+                          onClick={() => onSaveProposalEdit(item._id)}
+                        >
+                          Save Proposal
+                        </button>
+                        <button
+                          type="button"
+                          className="ss-session-cancel-btn"
+                          onClick={onStopEditProposal}
+                        >
+                          <X size={13} /> Cancel Edit
+                        </button>
+                      </div>
+                    </div>
                   ) : null}
                   {item.canCreateSession && isOwner ? (
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>

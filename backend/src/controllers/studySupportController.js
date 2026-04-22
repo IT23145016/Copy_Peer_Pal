@@ -200,6 +200,39 @@ const listBatchTopSessions = async (req, res) => {
   }
 };
 
+const updateStudySession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date, startTime, endTime, meetingLink } = req.body;
+    const normalizedMeetingLink = typeof meetingLink === "string" ? meetingLink.trim() : "";
+
+    if (!date || !startTime || !endTime || !normalizedMeetingLink) {
+      return res.status(400).json({ message: "date, startTime, endTime and meetingLink are required" });
+    }
+
+    const session = await StudySession.findById(id);
+    if (!session) {
+      return res.status(404).json({ message: "Study session not found" });
+    }
+
+    const isOwner = String(session.initiatedBy) === String(req.user.userId);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Only the session creator or an admin can edit this session" });
+    }
+
+    session.date = date;
+    session.startTime = startTime;
+    session.endTime = endTime;
+    session.meetingLink = normalizedMeetingLink;
+    await session.save();
+
+    return res.status(200).json({ message: "Study session updated", session });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update study session", error: error.message });
+  }
+};
+
 const cancelStudySession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -258,6 +291,119 @@ const createProposedSession = async (req, res) => {
   }
 };
 
+const updateProposedSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { moduleId, description, date, startTime, endTime } = req.body;
+    const normalizedDescription = typeof description === "string" ? description.trim() : "";
+
+    if (!moduleId || !normalizedDescription || !date || !startTime || !endTime) {
+      return res.status(400).json({ message: "moduleId, description, date, startTime and endTime are required" });
+    }
+
+    const proposal = await ProposedSession.findById(id);
+    if (!proposal) return res.status(404).json({ message: "Proposed session not found" });
+
+    const isOwner = String(proposal.createdBy) === String(req.user.userId);
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: "Only the proposal creator or an admin can edit this proposal" });
+    }
+    if (proposal.status !== "pending") {
+      return res.status(400).json({ message: "Only pending proposals can be edited" });
+    }
+    if (proposal.linkedStudySession) {
+      return res.status(400).json({ message: "Cannot edit a proposal that already has a created study session" });
+    }
+
+    const moduleItem = await Module.findById(moduleId).select("moduleCode moduleName");
+    if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+
+    proposal.moduleRef = moduleItem._id;
+    proposal.moduleCode = moduleItem.moduleCode;
+    proposal.moduleName = moduleItem.moduleName;
+    proposal.description = normalizedDescription;
+    proposal.date = date;
+    proposal.startTime = startTime;
+    proposal.endTime = endTime;
+    await proposal.save();
+
+    return res.status(200).json({ message: "Proposed session updated", session: proposal });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update proposed session", error: error.message });
+  }
+};
+
+const updateBatchTopRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { moduleId, note, targetBatchTop } = req.body;
+    const normalizedNote = typeof note === "string" ? note.trim() : "";
+
+    const existing = await BatchTopHelpRequest.findById(id);
+    if (!existing) return res.status(404).json({ message: "Request not found" });
+    if (String(existing.requestedBy) !== String(req.user.userId)) {
+      return res.status(403).json({ message: "Only the request owner can edit this request" });
+    }
+    if (existing.status !== "pending") {
+      return res.status(400).json({ message: "Only pending requests can be edited" });
+    }
+    if (!moduleId || !normalizedNote || !targetBatchTop) {
+      return res.status(400).json({ message: "moduleId, note and targetBatchTop are required" });
+    }
+
+    const [moduleItem, batchTopUser] = await Promise.all([
+      Module.findById(moduleId).select("moduleCode moduleName"),
+      User.findById(targetBatchTop).select("isBatchTop role isActive"),
+    ]);
+    if (!moduleItem) return res.status(404).json({ message: "Module not found" });
+    if (!batchTopUser || !isBatchTopUser(batchTopUser) || batchTopUser.role !== "user" || batchTopUser.isActive === false) {
+      return res.status(400).json({ message: "Selected target user is not an active Batch Top" });
+    }
+
+    const duplicate = await BatchTopHelpRequest.findOne({
+      _id: { $ne: id },
+      requestedBy: req.user.userId,
+      targetBatchTop,
+      moduleRef: moduleItem._id,
+      status: "pending",
+    });
+    if (duplicate) {
+      return res.status(409).json({ message: "You already have a pending request for this Batch Top and module" });
+    }
+
+    existing.targetBatchTop = targetBatchTop;
+    existing.moduleRef = moduleItem._id;
+    existing.moduleCode = moduleItem.moduleCode;
+    existing.moduleName = moduleItem.moduleName;
+    existing.note = normalizedNote;
+    await existing.save();
+
+    return res.status(200).json({ message: "Request updated", request: existing });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update request", error: error.message });
+  }
+};
+
+const deleteBatchTopRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await BatchTopHelpRequest.findById(id);
+    if (!existing) return res.status(404).json({ message: "Request not found" });
+    if (String(existing.requestedBy) !== String(req.user.userId)) {
+      return res.status(403).json({ message: "Only the request owner can delete this request" });
+    }
+    if (existing.status !== "pending") {
+      return res.status(400).json({ message: "Only pending requests can be deleted" });
+    }
+
+    await BatchTopHelpRequest.deleteOne({ _id: id });
+    return res.status(200).json({ message: "Request deleted" });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete request", error: error.message });
+  }
+};
+
 const deleteProposedSession = async (req, res) => {
   try {
     const { id } = req.params;
@@ -310,6 +456,17 @@ const listProposedSessions = async (req, res) => {
     return res.status(200).json(withMeta);
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch proposed sessions", error: error.message });
+  }
+};
+
+const getProposedSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await ProposedSession.findById(id).populate("createdBy", "name avatar").populate("moduleRef", "moduleCode moduleName");
+    if (!session) return res.status(404).json({ message: "Proposed session not found" });
+    return res.status(200).json(session);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch proposed session", error: error.message });
   }
 };
 
@@ -432,13 +589,18 @@ module.exports = {
   listBatchTops,
   createBatchTopRequest,
   listMyBatchTopRequests,
+  updateBatchTopRequest,
+  deleteBatchTopRequest,
   listBatchTopPendingGroups,
   startBatchTopSession,
   listBatchTopSessions,
+  updateStudySession,
   cancelStudySession,
   createProposedSession,
+  updateProposedSession,
   deleteProposedSession,
   listProposedSessions,
+  getProposedSession,
   voteProposedSession,
   setProposedSessionMeetingLink,
   createSessionFromProposal,
