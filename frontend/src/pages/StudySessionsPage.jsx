@@ -304,20 +304,23 @@ export default function StudySessionsPage() {
                           {!isOwner && alreadyVoted && <span className="pp-muted" style={{ fontSize: "0.74rem" }}>Voted ✓</span>}
                         </div>
                         {item.canCreateSession && isOwner ? (
-                          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.5rem" }}>
                             <input
                               placeholder="Meeting link (Teams/Zoom)"
                               value={meetingLinkDrafts[item._id] || ""}
                               onChange={(e) => setMeetingLinkDrafts((prev) => ({ ...prev, [item._id]: e.target.value }))}
                               style={{
-                                flex: 1,
+                                flex: "1 1 180px",
+                                minWidth: 0,
                                 fontSize: "0.85rem",
                                 padding: "0.5rem 0.7rem",
                                 borderRadius: "10px",
                                 border: "1px solid #e2e8f0",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
                               }}
                             />
-                            <button type="button" className="ss-join-btn" onClick={() => onCreateSession(item._id)}>
+                            <button type="button" className="ss-join-btn" style={{ flexShrink: 0 }} onClick={() => onCreateSession(item._id)}>
                               Create Session
                             </button>
                           </div>

@@ -7895,6 +7895,8 @@ body.theme-dark .ss-admin-filter-label {
   display: grid;
   gap: 0.45rem;
   box-shadow: 0 4px 14px rgba(245,128,37,0.06);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ss-proposal-card {
@@ -7906,6 +7908,8 @@ body.theme-dark .ss-admin-filter-label {
   gap: 0.45rem;
   box-shadow: 0 4px 14px rgba(245,128,37,0.06);
   margin-bottom: 0.75rem;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .ss-proposal-approved {
