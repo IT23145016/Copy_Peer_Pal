@@ -122,4 +122,49 @@ const sendProposalApprovedEmails = async ({ recipients, proposal }) => {
   return { sent, skipped: false };
 };
 
-module.exports = { sendAssignmentDueSoonEmails, sendProposalApprovedEmails };
+const sendDeadlineExtendedEmails = async ({ recipients, assignment, oldDeadline }) => {
+  const config = getSmtpConfig();
+  if (!config || !Array.isArray(recipients) || recipients.length === 0) {
+    return { sent: 0, skipped: true };
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: config.host,
+    port: config.port,
+    secure: config.secure,
+    auth: { user: config.user, pass: config.pass },
+  });
+
+  const fmt = (d) =>
+    new Date(d).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+
+  const subject = `Deadline Extended: ${assignment.assignmentName}`;
+  const text = [
+    `The deadline for the following assignment has been extended.`,
+    `Module: ${assignment.moduleCode} - ${assignment.moduleName}`,
+    `Assignment: ${assignment.assignmentName}`,
+    `Old Deadline: ${fmt(oldDeadline)}`,
+    `New Deadline: ${fmt(assignment.deadline)}`,
+    "",
+    "Please update your schedule accordingly.",
+  ].join("\n");
+
+  const html = `
+    <p>The deadline for the following assignment has been extended.</p>
+    <p><strong>Module:</strong> ${assignment.moduleCode} - ${assignment.moduleName}</p>
+    <p><strong>Assignment:</strong> ${assignment.assignmentName}</p>
+    <p><strong>Old Deadline:</strong> ${fmt(oldDeadline)}</p>
+    <p><strong>New Deadline:</strong> ${fmt(assignment.deadline)}</p>
+    <p>Please update your schedule accordingly.</p>
+  `;
+
+  const results = await Promise.allSettled(
+    recipients.map((r) =>
+      transporter.sendMail({ from: config.from, to: r.email, subject, text, html })
+    )
+  );
+  const sent = results.filter((r) => r.status === "fulfilled").length;
+  return { sent, skipped: false };
+};
+
+module.exports = { sendAssignmentDueSoonEmails, sendProposalApprovedEmails, sendDeadlineExtendedEmails };

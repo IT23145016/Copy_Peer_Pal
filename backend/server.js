@@ -12,8 +12,11 @@ const moduleRoutes = require("./src/routes/moduleRoutes");
 const studySupportRoutes = require("./src/routes/studySupportRoutes");
 const calendarEventRoutes = require("./src/routes/calendarEventRoutes");
 
+const { startDueSoonScheduler } = require("./src/utils/dueSoonScheduler");
+
 dotenv.config();
 connectDB();
+startDueSoonScheduler();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
