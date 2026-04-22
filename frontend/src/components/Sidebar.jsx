@@ -1,4 +1,4 @@
-import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, LayoutDashboard, Presentation, UserRound } from "lucide-react";
+import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ClipboardList, LayoutDashboard, Presentation, UserRound, UsersRound } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getDashboardPathByRole, getStoredAuth } from "../utils/auth";
@@ -91,6 +91,10 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
               <ClipboardList size={21} />
               {!collapsed && <span>Assignment Tracker</span>}
             </Link>
+            <Link to="/profile" className={`pp-nav-item ${isActive("/profile") ? "active" : ""}`} title="Profile">
+              <UserRound size={21} />
+              {!collapsed && <span>Profile</span>}
+            </Link>
           </>
         ) : (
           <>
@@ -103,7 +107,7 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
               {!collapsed && <span>Modules</span>}
             </Link>
             <Link to="/admin/dashboard?tab=users" className={`pp-nav-item ${isActive("/admin/dashboard", "users") ? "active" : ""}`} title="Users">
-              <UserRound size={21} />
+              <UsersRound size={21} />
               {!collapsed && <span>Users</span>}
             </Link>
             <Link to="/helpdesk" className={`pp-nav-item ${isActive("/helpdesk") ? "active" : ""}`} title="Help Desk">
@@ -117,6 +121,10 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
             <Link to="/calendar" className={`pp-nav-item ${isActive("/calendar") ? "active" : ""}`} title="Calendar">
               <CalendarDays size={21} />
               {!collapsed && <span>Calendar</span>}
+            </Link>
+            <Link to="/profile" className={`pp-nav-item ${isActive("/profile") ? "active" : ""}`} title="Profile">
+              <UserRound size={21} />
+              {!collapsed && <span>Profile</span>}
             </Link>
           </>
         )}
