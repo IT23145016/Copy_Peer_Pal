@@ -7,7 +7,7 @@ const User = require("../models/User");
 const { sendProposalApprovedEmails } = require("../utils/mailer");
 
 const isBatchTopUser = (user) => !!user?.isBatchTop;
-const BATCH_TOP_SESSION_THRESHOLD = 1;
+const BATCH_TOP_SESSION_THRESHOL = 1;
 const PROPOSAL_APPROVAL_THRESHOLD = 2;
 
 const listBatchTops = async (req, res) => {
