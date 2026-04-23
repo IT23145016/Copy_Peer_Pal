@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, BookOpenCheck, GraduationCap, Layers3, Sparkles } from "lucide-react";
+import { ArrowLeft, BookOpenCheck } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import api from "../services/api";
@@ -117,42 +117,6 @@ export default function AddModulePage() {
               </form>
             </div>
           </div>
-
-          <aside className="mod-visual-panel" aria-hidden="true">
-            <div className="mod-visual-glow mod-visual-glow-one" />
-            <div className="mod-visual-glow mod-visual-glow-two" />
-            <div className="mod-visual-card mod-visual-card-main">
-              <span className="mod-visual-chip">
-                <Sparkles size={14} />
-                Module Setup
-              </span>
-              <h3>Build a clear academic structure.</h3>
-              <p>Organize subjects by year and semester with a calmer visual layout.</p>
-            </div>
-
-            <div className="mod-visual-orb mod-visual-orb-large">
-              <GraduationCap size={54} />
-            </div>
-
-            <div className="mod-visual-card mod-visual-card-floating">
-              <div className="mod-visual-icon-wrap">
-                <Layers3 size={20} />
-              </div>
-              <div>
-                <strong>Year + Semester</strong>
-                <span>Keep modules grouped in a simple flow.</span>
-              </div>
-            </div>
-
-            <div className="mod-visual-dots">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </aside>
         </div>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { BookMarked, CalendarRange, CircleHelp, UsersRound } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import { clearStoredAuth, getStoredAuth } from "../utils/auth";
+import bannerImage from "../assets/banner.jpg";
 
 const stats = [
   { value: "100K+", label: "Student plans organised" },
@@ -73,19 +74,11 @@ export default function LandingPage() {
 
           <section className="peerpal-home-hero">
             <div className="peerpal-home-visual">
-              <div className="peerpal-home-hero-copy sr-only">
-                <span className="peerpal-home-kicker">Student life, simplified</span>
-                <h1>Knowledge, support, and planning for every student, everywhere.</h1>
-                <p className="peerpal-home-subtitle">
-                  Accessible academic coordination for campus life. Keep deadlines, study sessions, and peer help in one
-                  friendly place.
-                </p>
-              </div>
               <div className="peerpal-home-books-wrap" aria-hidden="true">
                 <img
                   className="peerpal-home-books-image"
-                  src="/home-books-illustration.png"
-                  alt="Students learning around a stack of books"
+                  src={bannerImage}
+                  alt="Planning and productivity themed banner"
                 />
               </div>
 

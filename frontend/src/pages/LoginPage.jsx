@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
+import loginImage from "../assets/login.jpg";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -46,7 +47,9 @@ export default function LoginPage() {
       <section className="student-shell login-shell">
         <div className="login-center">
           <div className="login-combined-card">
-            <div className="login-illustration-bg" aria-hidden="true" />
+            <div className="login-illustration-bg" aria-hidden="true">
+              <img src={loginImage} alt="PeerPal login visual" />
+            </div>
             <form className="login-card" onSubmit={onSubmit} noValidate>
               <div className="login-card-header">
                 <span className="login-badge">Welcome Back</span>
