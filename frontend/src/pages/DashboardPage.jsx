@@ -18,6 +18,28 @@ const getUrgencyLabel = (item) => {
   return "Planned";
 };
 
+const buildAssignmentChartStyle = (pendingCount, doneCount, dueSoonCount) => {
+  const total = pendingCount + doneCount + dueSoonCount;
+  if (!total) {
+    return {
+      background:
+        "conic-gradient(#d8e4fb 0deg 120deg, #edf3ff 120deg 240deg, #bfd8ff 240deg 360deg)",
+    };
+  }
+
+  const pendingDegrees = (pendingCount / total) * 360;
+  const doneDegrees = (doneCount / total) * 360;
+  const dueSoonDegrees = 360 - pendingDegrees - doneDegrees;
+
+  return {
+    background: `conic-gradient(
+      #4a84dc 0deg ${pendingDegrees}deg,
+      #6fd5a7 ${pendingDegrees}deg ${pendingDegrees + doneDegrees}deg,
+      #f59e0b ${pendingDegrees + doneDegrees}deg ${pendingDegrees + doneDegrees + dueSoonDegrees}deg
+    )`,
+  };
+};
+
 export default function DashboardPage() {
   const [profile, setProfile] = useState(null);
   const [assignments, setAssignments] = useState([]);
@@ -162,6 +184,12 @@ export default function DashboardPage() {
     return filtered;
   }, [trackerCards, trackerFilter, trackerModuleFilter]);
 
+  const dueSoonCount = dueSoonItems.length;
+  const assignmentChartStyle = useMemo(
+    () => buildAssignmentChartStyle(pendingCount, doneCount, dueSoonCount),
+    [pendingCount, doneCount, dueSoonCount]
+  );
+
   const nextAssignment = null;
 
   return (
@@ -190,28 +218,67 @@ export default function DashboardPage() {
           <div className="adm-dashboard">
 
             {/* Stat cards */}
-            <div className="adm-stats-row">
-              <article className="adm-stat-card adm-stat-orange">
-                <div className="adm-stat-icon"><ClipboardList size={22} /></div>
-                <div>
-                  <p className="adm-stat-label">Pending Assignments</p>
-                  <p className="adm-stat-num">{pendingCount}</p>
+            <div className="adm-dashboard-insights">
+              <article className="adm-chart-card">
+                <div className="adm-section-head">
+                  <h3>Assignment Overview</h3>
+                </div>
+                <div className="adm-chart-wrap">
+                  <div className="adm-pie-chart" style={assignmentChartStyle}>
+                    <div className="adm-pie-chart-inner">
+                      <strong>{pendingCount + doneCount + dueSoonCount}</strong>
+                      <span>Total</span>
+                    </div>
+                  </div>
+                  <div className="adm-chart-legend">
+                    <div className="adm-chart-legend-item">
+                      <span className="adm-chart-swatch adm-swatch-pending" />
+                      <div>
+                        <strong>Pending</strong>
+                        <span>{pendingCount} assignments</span>
+                      </div>
+                    </div>
+                    <div className="adm-chart-legend-item">
+                      <span className="adm-chart-swatch adm-swatch-complete" />
+                      <div>
+                        <strong>Completed</strong>
+                        <span>{doneCount} assignments</span>
+                      </div>
+                    </div>
+                    <div className="adm-chart-legend-item">
+                      <span className="adm-chart-swatch adm-swatch-due" />
+                      <div>
+                        <strong>Due Soon</strong>
+                        <span>{dueSoonCount} assignments</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </article>
-              <article className="adm-stat-card adm-stat-soft">
-                <div className="adm-stat-icon"><CheckCircle2 size={22} /></div>
-                <div>
-                  <p className="adm-stat-label">Completed</p>
-                  <p className="adm-stat-num">{doneCount}</p>
-                </div>
-              </article>
-              <article className="adm-stat-card adm-stat-green">
-                <div className="adm-stat-icon"><BookMarked size={22} /></div>
-                <div>
-                  <p className="adm-stat-label">My Modules</p>
-                  <p className="adm-stat-num">{modules.length}</p>
-                </div>
-              </article>
+
+              <div className="adm-stats-row adm-stats-column">
+                <article className="adm-stat-card adm-stat-orange">
+                  <div className="adm-stat-icon"><ClipboardList size={22} /></div>
+                  <div>
+                    <p className="adm-stat-label">Pending Assignments</p>
+                    <p className="adm-stat-num">{pendingCount}</p>
+                  </div>
+                </article>
+                <article className="adm-stat-card adm-stat-soft">
+                  <div className="adm-stat-icon"><CheckCircle2 size={22} /></div>
+                  <div>
+                    <p className="adm-stat-label">Completed</p>
+                    <p className="adm-stat-num">{doneCount}</p>
+                  </div>
+                </article>
+                <article className="adm-stat-card adm-stat-green">
+                  <div className="adm-stat-icon"><Clock3 size={22} /></div>
+                  <div>
+                    <p className="adm-stat-label">Due Soon</p>
+                    <p className="adm-stat-num">{dueSoonCount}</p>
+                  </div>
+                </article>
+              </div>
             </div>
 
             {/* Main two-column grid */}

@@ -1060,8 +1060,8 @@ body.theme-dark .landing-student {
 
 .student-brand-logo {
   width: auto;
-  height: 56px;
-  max-width: 210px;
+  height: 62px;
+  max-width: 240px;
   flex: 0 0 auto;
   display: block;
   filter: drop-shadow(0 12px 22px rgba(52, 86, 135, 0.28));
@@ -5262,6 +5262,14 @@ body.theme-dark .quickadd-footer {
   padding: 0.2rem 0.3rem;
 }
 
+.pp-sidebar-brand-logo {
+  width: auto;
+  height: 42px;
+  max-width: 148px;
+  display: block;
+  flex-shrink: 0;
+}
+
 .pp-sidebar-brand-mark {
   width: 40px;
   height: 40px;
@@ -5786,6 +5794,108 @@ body.theme-dark .quickadd-footer {
   gap: 1rem;
 }
 
+.adm-dashboard-insights {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(260px, 0.82fr);
+  gap: 1.2rem;
+  align-items: stretch;
+}
+
+.adm-stats-column {
+  grid-template-columns: 1fr;
+  align-content: start;
+}
+
+.adm-chart-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff, #eef5ff);
+  border: 1px solid rgba(143, 174, 219, 0.24);
+  box-shadow: 0 16px 36px rgba(128, 156, 201, 0.12);
+}
+
+.adm-chart-wrap {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.adm-pie-chart {
+  width: clamp(180px, 22vw, 220px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+.adm-pie-chart-inner {
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  gap: 0.1rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(124, 148, 193, 0.12);
+  text-align: center;
+}
+
+.adm-pie-chart-inner strong {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #1d3661;
+}
+
+.adm-pie-chart-inner span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b83a5;
+}
+
+.adm-chart-legend {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.adm-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(143, 174, 219, 0.18);
+}
+
+.adm-chart-legend-item strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #1d3661;
+}
+
+.adm-chart-legend-item span {
+  display: block;
+  font-size: 0.8rem;
+  color: #6b83a5;
+}
+
+.adm-chart-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.adm-swatch-pending { background: #4a84dc; }
+.adm-swatch-complete { background: #6fd5a7; }
+.adm-swatch-due { background: #f59e0b; }
+
 .adm-stat-card {
   display: flex;
   align-items: center;
@@ -5835,6 +5945,35 @@ body.theme-dark .quickadd-footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.85rem;
+}
+
+@media (max-width: 1100px) {
+  .adm-dashboard-insights {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-chart-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .adm-chart-legend {
+    width: 100%;
+  }
+
+  .adm-stats-column {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .adm-stats-column {
+    grid-template-columns: 1fr;
+  }
+
+  .adm-chart-card {
+    padding: 1rem;
+  }
 }
 
 .adm-assign-card {
@@ -10011,6 +10150,12 @@ body.theme-dark .landing-student .theme-toggle {
   justify-content: center !important;
 }
 
+.pp-sidebar-collapsed .pp-sidebar-brand-logo {
+  height: 36px;
+  max-width: 36px;
+  object-fit: contain;
+}
+
 .pp-sidebar-collapsed .pp-sidebar-toggle {
   margin-left: 0 !important;
 }
@@ -10029,6 +10174,20 @@ body.theme-dark .adm-dashboard .adm-stat-card .pp-muted {
 
 body.theme-dark .adm-dashboard .adm-see-all {
   color: #2563eb !important;
+}
+
+body.theme-dark .adm-chart-card {
+  background: linear-gradient(145deg, #ffffff, #eef5ff);
+  border-color: rgba(143, 174, 219, 0.18);
+}
+
+body.theme-dark .adm-chart-legend-item {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(143, 174, 219, 0.16);
+}
+
+body.theme-dark .adm-pie-chart-inner {
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .login-shell {
