@@ -10,6 +10,7 @@ const {
   createSessionFromProposal,
   deleteProposedSession,
   getProposedSession,
+  getStudySession,
   listMyBatchTopRequests,
   listProposedSessions,
   setProposedSessionMeetingLink,
@@ -31,6 +32,7 @@ router.delete("/requests/:id", auth, deleteBatchTopRequest);
 router.get("/batch-top/pending-groups", auth, listBatchTopPendingGroups);
 router.post("/sessions/start", auth, startBatchTopSession);
 router.get("/sessions", auth, listBatchTopSessions);
+router.get("/sessions/:id", auth, getStudySession);
 router.put("/sessions/:id", auth, updateStudySession);
 router.delete("/sessions/:id", auth, cancelStudySession);
 

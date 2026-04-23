@@ -200,14 +200,25 @@ const listBatchTopSessions = async (req, res) => {
   }
 };
 
+const getStudySession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await StudySession.findById(id).populate("initiatedBy", "name").populate("moduleRef", "moduleCode moduleName");
+    if (!session) return res.status(404).json({ message: "Study session not found" });
+    return res.status(200).json(session);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch study session", error: error.message });
+  }
+};
+
 const updateStudySession = async (req, res) => {
   try {
     const { id } = req.params;
     const { date, startTime, endTime, meetingLink } = req.body;
     const normalizedMeetingLink = typeof meetingLink === "string" ? meetingLink.trim() : "";
 
-    if (!date || !startTime || !endTime || !normalizedMeetingLink) {
-      return res.status(400).json({ message: "date, startTime, endTime and meetingLink are required" });
+    if (!startTime || !endTime || !normalizedMeetingLink) {
+      return res.status(400).json({ message: "startTime, endTime and meetingLink are required" });
     }
 
     const session = await StudySession.findById(id);
@@ -221,7 +232,7 @@ const updateStudySession = async (req, res) => {
       return res.status(403).json({ message: "Only the session creator or an admin can edit this session" });
     }
 
-    session.date = date;
+    if (date) session.date = date;
     session.startTime = startTime;
     session.endTime = endTime;
     session.meetingLink = normalizedMeetingLink;
@@ -594,6 +605,7 @@ module.exports = {
   listBatchTopPendingGroups,
   startBatchTopSession,
   listBatchTopSessions,
+  getStudySession,
   updateStudySession,
   cancelStudySession,
   createProposedSession,

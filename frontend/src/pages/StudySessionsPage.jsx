@@ -380,9 +380,9 @@ export default function StudySessionsPage() {
                           type="button"
                           className="ss-action-btn ss-btn-outline"
                           style={{ padding: "0.55rem 0.85rem" }}
-                          onClick={() => isEditingSession ? onStopEditSession() : onStartEditSession(item)}
+                          onClick={() => navigate(`/study-sessions/edit-session?sessionId=${item._id}`)}
                         >
-                          <Pencil size={13} /> {isEditingSession ? "Close Edit" : "Edit"}
+                          <Pencil size={13} /> Edit
                         </button>
                         <button
                           type="button"
