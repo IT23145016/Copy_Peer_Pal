@@ -6,7 +6,7 @@ const ADMIN_PASSWORD = 'Ayodhya##2206';
 
 const NEW_USER_NAME     = 'Test Student';
 const NEW_USER_EMAIL    = `student_${Date.now()}@test.com`;
-const NEW_USER_PASSWORD = 'Student123';
+const NEW_USER_PASSWORD = 'Student123!';
 // ──────────────────────────────────────────────────────────────────────────────
 
 // ── 1. LOGIN ──────────────────────────────────────────────────────────────────
