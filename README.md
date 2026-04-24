@@ -1,39 +1,64 @@
 # ITPM_PROJECT
 
-# PeerPal — Student Support System
+# 🎓 PeerPal — Student Support System
 
-A full-stack web application designed to help university students manage assignments, study sessions, help desk requests, modules, and academic calendar events.
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite, React Router, Axios, Lucide React |
-| Backend | Node.js, Express 5, MongoDB (Mongoose) |
-| Auth | JWT, bcryptjs |
-| Email | Nodemailer (Gmail SMTP) |
-| Security | Helmet, express-rate-limit, CORS |
+PeerPal is a full-stack web application designed to support university students in managing their academic and collaborative activities. It centralizes assignments, study sessions, help requests, modules, and calendar events into a single platform.
 
 ---
 
-## Features
+## 🚀 Tech Stack
 
-- **Authentication** — Register, login, JWT-protected routes
-- **Dashboard** — Personalised student overview
-- **Assignments** — Create, track, and monitor assignment progress with due-soon email reminders
-- **Modules** — Manage enrolled modules
-- **Study Sessions** — Propose, vote on, and join peer study sessions
-- **Help Desk** — Submit and track help requests; batch top requests surfaced to admins
-- **Calendar** — Personal and campus events with Sri Lanka public holidays
-- **Admin Panel** — User and content management
-- **System Guide Chatbot** — In-app help assistant
-- **Seasonal UI Overlay** — Dynamic seasonal theming
+| Layer       | Technology |
+|------------|------------|
+| **Frontend** | React 19, Vite, React Router, Axios, Lucide React |
+| **Backend**  | Node.js, Express 5, MongoDB (Mongoose) |
+| **Authentication** | JWT, bcryptjs |
+| **Email Service** | Nodemailer (Gmail SMTP) |
+| **Security** | Helmet, express-rate-limit, CORS |
 
 ---
 
-## Project Structure
+## ✨ Features
+
+- 🔐 **Authentication**
+  - User registration & login
+  - JWT-based protected routes
+
+- 📊 **Dashboard**
+  - Personalized student overview
+
+- 📝 **Assignments**
+  - Create and track assignments
+  - Progress monitoring
+  - Automated due-soon email reminders
+
+- 📚 **Modules**
+  - Manage enrolled modules
+
+- 🤝 **Study Sessions**
+  - Create and join study sessions
+  - Voting system for session proposals
+
+- 🆘 **Help Desk**
+  - Submit and track support requests
+  - Frequently requested issues highlighted for admins
+
+- 📅 **Calendar**
+  - Personal & academic events
+  - Includes Sri Lankan public holidays
+
+- 🛠️ **Admin Panel**
+  - Manage users and system content
+
+- 🤖 **System Guide Chatbot**
+  - In-app assistance for users
+
+- 🎨 **Seasonal UI Overlay**
+  - Dynamic UI themes based on seasons/events
+
+---
+
+## 📁 Project Structure
 
 ```
 Copy_Peer_Pal/
@@ -55,24 +80,27 @@ Copy_Peer_Pal/
         └── utils/         # Auth helpers
 ```
 
+
 ---
 
-## Getting Started
+## ⚙️ Getting Started
 
 ### Prerequisites
 
-- Node.js >= 18
-- MongoDB Atlas account (or local MongoDB)
-- Gmail account with an App Password for SMTP
+- Node.js (v18 or higher)
+- MongoDB Atlas account or local MongoDB instance
+- Gmail account with App Password (for email service)
 
-### 1. Clone the repository
+---
+
+### 1️⃣ Clone the Repository
 
 ```bash
 git clone <repo-url>
 cd Copy_Peer_Pal
 ```
 
-### 2. Backend setup
+### 2️⃣ Backend Setup
 
 ```bash
 cd backend
@@ -104,7 +132,7 @@ npm start        # production
 
 Backend runs on `http://localhost:5000`.
 
-### 3. Frontend setup
+### 3️⃣ Frontend Setup
 
 ```bash
 cd frontend
@@ -116,7 +144,7 @@ Frontend runs on `http://localhost:5173`.
 
 ---
 
-## API Routes
+## 🔗 API Endpoints
 
 | Prefix | Description |
 |--------|-------------|
@@ -130,7 +158,7 @@ Frontend runs on `http://localhost:5173`.
 
 ---
 
-## Environment Variables Reference
+## 🔐 Environment Variables Reference
 
 | Variable | Description |
 |----------|-------------|
@@ -145,8 +173,4 @@ Frontend runs on `http://localhost:5173`.
 | `SMTP_PASS` | SMTP password / app password |
 | `SMTP_FROM` | Sender display name and email |
 
----
 
-## License
-
-ISC
