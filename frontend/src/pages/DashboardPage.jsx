@@ -255,30 +255,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </article>
-
-              <div className="adm-stats-row adm-stats-column">
-                <article className="adm-stat-card adm-stat-orange">
-                  <div className="adm-stat-icon"><ClipboardList size={22} /></div>
-                  <div>
-                    <p className="adm-stat-label">Pending Assignments</p>
-                    <p className="adm-stat-num">{pendingCount}</p>
-                  </div>
-                </article>
-                <article className="adm-stat-card adm-stat-soft">
-                  <div className="adm-stat-icon"><CheckCircle2 size={22} /></div>
-                  <div>
-                    <p className="adm-stat-label">Completed</p>
-                    <p className="adm-stat-num">{doneCount}</p>
-                  </div>
-                </article>
-                <article className="adm-stat-card adm-stat-green">
-                  <div className="adm-stat-icon"><Clock3 size={22} /></div>
-                  <div>
-                    <p className="adm-stat-label">Due Soon</p>
-                    <p className="adm-stat-num">{dueSoonCount}</p>
-                  </div>
-                </article>
-              </div>
             </div>
 
             {/* Main two-column grid */}
