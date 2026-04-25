@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { getDashboardPathByRole, setStoredAuth } from "../utils/auth";
+import signupImage from "../assets/signup.jpg";
 
 const BATCH_OPTIONS = ["Malabe", "Kandy Uni", "Nothern Uni"];
 
@@ -73,7 +74,7 @@ export default function RegisterPage() {
               <div className="login-card-header">
                 <span className="login-badge">New Account</span>
                 <h1 className="login-title">Create Account</h1>
-                <p className="login-subtitle">Join PeerPal — your student ID is auto-generated.</p>
+                <p className="login-subtitle">Join PeerPal - your student ID is auto-generated.</p>
               </div>
 
               <div className="login-fields">
@@ -145,7 +146,9 @@ export default function RegisterPage() {
               </p>
 
             </form>
-            <div className="reg-illustration" aria-hidden="true" />
+            <div className="reg-illustration" aria-hidden="true">
+              <img src={signupImage} alt="Education themed signup visual" />
+            </div>
           </div>
         </div>
 
