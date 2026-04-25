@@ -1016,12 +1016,12 @@ body.theme-dark .landing-student {
   justify-content: flex-start;
   gap: 1rem;
   width: 100%;
-  padding: 0.9rem 1rem;
+  padding: 0.68rem 0.95rem;
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.34);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 28px rgba(30, 64, 175, 0.08);
 }
 
 .theme-dark .student-topbar {
@@ -1060,7 +1060,7 @@ body.theme-dark .landing-student {
 
 .student-brand-logo {
   width: auto;
-  height: 62px;
+  height: 52px;
   max-width: 240px;
   flex: 0 0 auto;
   display: block;
@@ -1074,15 +1074,15 @@ body.theme-dark .landing-student {
 .student-nav {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-left: 1rem;
+  gap: 0.55rem;
+  margin-left: 0.8rem;
   margin-right: auto;
 }
 
 .student-nav a,
 .mini-link {
   text-decoration: none;
-  color: var(--text-soft);
+  color: #3d4a6b;
   font-weight: 700;
 }
 
@@ -1101,57 +1101,57 @@ body.theme-dark .landing-student {
 }
 
 .student-nav a {
-  min-width: 112px;
+  min-width: 96px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  font-size: 0.95rem;
+  padding: 0.68rem 0.9rem;
+  border-radius: 12px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .student-nav a:hover,
 .student-nav a.is-active,
 .mini-link:hover {
-  color: var(--accent-strong);
+  color: #1e40af;
 }
 
 .student-nav a.is-active {
   position: relative;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(30, 64, 175, 0.15);
 }
 
 .student-nav a.is-active::after {
+  display: none;
   content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.35rem;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
 }
 
 .student-top-actions {
   display: inline-flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .student-top-actions .mini-link,
 .theme-toggle,
 .menu-dot {
   margin: 0;
-  padding: 0.7rem 0.95rem;
-  min-height: 42px;
-  border-radius: 14px;
-  border: 1px solid var(--stroke);
-  background: var(--surface);
-  color: var(--heading);
+  padding: 0.6rem 0.85rem;
+  min-height: 38px;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 64, 175, 0.12);
+  background: rgba(255, 255, 255, 0.55);
+  color: #1e293b;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
   font-weight: 700;
   line-height: 1;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 24px rgba(30, 64, 175, 0.06);
 }
 
 .menu-dot {
@@ -1160,8 +1160,8 @@ body.theme-dark .landing-student {
 }
 
 .student-cta {
-  min-height: 42px;
-  padding-inline: 1.15rem;
+  min-height: 38px;
+  padding-inline: 1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1173,7 +1173,15 @@ body.theme-dark .landing-student {
 }
 
 .student-top-actions .mini-link:hover {
-  border-color: var(--stroke);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(30, 64, 175, 0.15);
+}
+
+.theme-toggle:hover,
+.menu-dot:hover,
+.student-nav a:hover {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(30, 64, 175, 0.12);
 }
 
 .student-account-link {
@@ -5826,6 +5834,8 @@ body.theme-dark .quickadd-footer {
 .adm-pie-chart {
   width: clamp(260px, 28vw, 340px);
   aspect-ratio: 1;
+  position: relative;
+  isolation: isolate;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -5833,9 +5843,26 @@ body.theme-dark .quickadd-footer {
   margin-left: 5.5rem;
 }
 
+.adm-pie-chart-animated {
+  animation: admPieChartEnter 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.adm-pie-chart-animated::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: inherit;
+  transform-origin: center;
+  animation: admPieChartSweep 1100ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  z-index: 0;
+}
+
 .adm-pie-chart-inner {
   width: 58%;
   aspect-ratio: 1;
+  position: relative;
+  z-index: 1;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -5843,6 +5870,7 @@ body.theme-dark .quickadd-footer {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 8px 20px rgba(124, 148, 193, 0.12);
   text-align: center;
+  animation: admPieChartCenterPop 700ms 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .adm-pie-chart-inner strong {
@@ -5857,6 +5885,49 @@ body.theme-dark .quickadd-footer {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #6b83a5;
+}
+
+@keyframes admPieChartEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.88) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes admPieChartSweep {
+  from {
+    clip-path: inset(0 0 0 50%);
+    opacity: 0.55;
+    transform: rotate(-140deg) scale(0.96);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes admPieChartCenterPop {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-pie-chart-animated,
+  .adm-pie-chart-animated::before,
+  .adm-pie-chart-inner {
+    animation: none !important;
+  }
 }
 
 .adm-chart-legend {

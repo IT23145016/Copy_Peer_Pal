@@ -189,6 +189,7 @@ export default function DashboardPage() {
     () => buildAssignmentChartStyle(pendingCount, doneCount, dueSoonCount),
     [pendingCount, doneCount, dueSoonCount]
   );
+  const assignmentChartKey = `${pendingCount}-${doneCount}-${dueSoonCount}`;
 
   const nextAssignment = null;
 
@@ -224,7 +225,7 @@ export default function DashboardPage() {
                   <h3>Assignment Overview</h3>
                 </div>
                 <div className="adm-chart-wrap">
-                  <div className="adm-pie-chart" style={assignmentChartStyle}>
+                  <div key={assignmentChartKey} className="adm-pie-chart adm-pie-chart-animated" style={assignmentChartStyle}>
                     <div className="adm-pie-chart-inner">
                       <strong>{pendingCount + doneCount + dueSoonCount}</strong>
                       <span>Total</span>
