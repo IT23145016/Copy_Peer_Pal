@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Moon, SunMedium } from "lucide-react";
 import { clearStoredAuth, getDashboardPathByRole, getStoredAuth } from "../utils/auth";
-import siteLogo from "../assets/logo 2.png";
+import siteLogo from "../assets/logo-no-bg.png";
 
 export default function PublicNavbar({ theme = "light", onToggleTheme }) {
   const auth = getStoredAuth();

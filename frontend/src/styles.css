@@ -1030,11 +1030,11 @@ body.theme-dark .landing-student {
 }
 
 .theme-dark .student-brand {
-  padding: 0.35rem 0.55rem;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .student-brand {
@@ -10967,6 +10967,10 @@ body.theme-dark .hd-header .pp-muted,
 body.theme-dark .ss-header .pp-muted,
 body.theme-dark .usr-filter-row,
 body.theme-dark .usr-filter-row label {
+  color: #c6d4ea !important;
+}
+
+body.theme-dark .aa-assignments-view .aa-view-topbar .pp-muted {
   color: #c6d4ea !important;
 }
 
