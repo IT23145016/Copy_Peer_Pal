@@ -2,7 +2,6 @@ import { BookOpenCheck, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, Cli
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getDashboardPathByRole, getStoredAuth } from "../utils/auth";
-import siteLogo from "../assets/logo.png";
 
 export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false }) {
   const [collapsed, setCollapsed] = useState(() => {
@@ -29,7 +28,6 @@ export default function Sidebar({ profile, onHomeClick, defaultCollapsed = false
   return (
     <aside className={`pp-sidebar ${collapsed ? "pp-sidebar-collapsed" : ""}`}>
       <div className="pp-sidebar-brand">
-        <img className="pp-sidebar-brand-logo" src={siteLogo} alt="PeerPal logo" />
         {!collapsed && (
           <span className="pp-sidebar-brand-text">
             PeerPal
