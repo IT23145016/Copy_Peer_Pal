@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Moon, SunMedium } from "lucide-react";
 import { clearStoredAuth, getDashboardPathByRole, getStoredAuth } from "../utils/auth";
-import peerPalLogo from "../assets/peerpal-logo.svg";
+import siteLogo from "../assets/logo-no-bg.png";
 
 export default function PublicNavbar({ theme = "light", onToggleTheme }) {
   const auth = getStoredAuth();
@@ -32,7 +32,7 @@ export default function PublicNavbar({ theme = "light", onToggleTheme }) {
   return (
     <header className="student-topbar">
       <Link className="student-brand" to="/">
-        <img className="student-brand-logo" src={peerPalLogo} alt="PeerPal logo" />
+        <img className="student-brand-logo" src={siteLogo} alt="PeerPal logo" />
       </Link>
 
       <nav className="student-nav" aria-label="Main navigation">

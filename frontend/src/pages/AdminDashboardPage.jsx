@@ -22,6 +22,10 @@ export default function AdminDashboardPage() {
     year: "",
     semester: "",
   });
+  const [moduleFilters, setModuleFilters] = useState({
+    year: "",
+    semester: "",
+  });
   const [activeSection, setActiveSection] = useState("dashboard");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -101,6 +105,10 @@ export default function AdminDashboardPage() {
     setAssignmentFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const onModuleFilterChange = (e) => {
+    setModuleFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
   const onApplyFilters = async () => {
     setError("");
     setStatus("");
@@ -118,6 +126,10 @@ export default function AdminDashboardPage() {
   const onResetAssignmentFilters = () => {
     setAssignmentFilter("all");
     setAssignmentFilters({ year: "", semester: "" });
+  };
+
+  const onResetModuleFilters = () => {
+    setModuleFilters({ year: "", semester: "" });
   };
 
   const onToggleUserStatus = async (user) => {
@@ -180,6 +192,18 @@ export default function AdminDashboardPage() {
 
     return filtered;
   })();
+
+  const filteredModules = modules.filter((item) => {
+    if (moduleFilters.year && String(item.academicYear) !== moduleFilters.year) {
+      return false;
+    }
+
+    if (moduleFilters.semester && String(item.semester) !== moduleFilters.semester) {
+      return false;
+    }
+
+    return true;
+  });
 
   const activeUsersCount = users.filter((user) => user.isActive !== false).length;
   const batchTopCount = users.filter((user) => user.isBatchTop).length;
@@ -613,16 +637,36 @@ export default function AdminDashboardPage() {
             <div className="aa-view-topbar">
               <div>
                 <h2 className="aa-view-title">Modules</h2>
-                <p className="pp-muted">{modules.length} module(s) available</p>
+                <p className="pp-muted">
+                  Showing {filteredModules.length} of {modules.length} module(s)
+                </p>
               </div>
               <button type="button" className="aa-add-btn" onClick={() => navigate("/admin/modules/add")}>
                 + Add Module
               </button>
             </div>
 
+            <div className="aa-filter-row">
+              <select name="year" value={moduleFilters.year} onChange={onModuleFilterChange}>
+                <option value="">All Years</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+              <select name="semester" value={moduleFilters.semester} onChange={onModuleFilterChange}>
+                <option value="">All Semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+              </select>
+              <button type="button" className="aa-filter-reset-btn" onClick={onResetModuleFilters}>
+                Reset
+              </button>
+            </div>
+
             <div className="aa-published-grid">
-              {modules.length ? (
-                modules.map((item) => (
+              {filteredModules.length ? (
+                filteredModules.map((item) => (
                   <article key={item._id} className="aa-pub-card">
                     <div className="aa-pub-top">
                       <span className="aa-pub-code">{item.moduleCode}</span>
@@ -650,7 +694,7 @@ export default function AdminDashboardPage() {
                   </article>
                 ))
               ) : (
-                <p className="pp-muted">No modules yet.</p>
+                <p className="pp-muted">No modules match this filter.</p>
               )}
             </div>
           </div>
