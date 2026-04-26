@@ -68,9 +68,11 @@ export default function PublicNavbar({ theme = "light", onToggleTheme }) {
             Login
           </Link>
         )}
-        <Link className="btn btn-primary student-cta" to="/register">
-          Signup
-        </Link>
+        {!isLoggedIn ? (
+          <Link className="btn btn-primary student-cta" to="/register">
+            Signup
+          </Link>
+        ) : null}
       </div>
     </header>
   );
